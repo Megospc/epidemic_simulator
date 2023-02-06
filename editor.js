@@ -40,7 +40,7 @@ function createJSON() {
     }
   };
   for (let i = 0; i < states.length; i++) {
-    let o = states[i];
+    let o = Object.assign({}, states[i]);
     delete o.div;
     obj.states.push(o);
   }
