@@ -4,7 +4,7 @@ var options = {
   count: 1000,
   speed: 7,
   quar: 0,
-  stop: true
+  stop: false
 };
 var openedadd = [];
 var $ = (id) => document.getElementById(id);
