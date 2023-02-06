@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=600px">
+  <title>Симулятор эпидемий - редактор</title>
+  <link rel="icon" href="assets/icon.svg">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body id="body">
+  <div id="editor">
+    <div id="top">
+      <div><input type="text" id="name" value="без имени" onchange="window.name = (this.value);"></div>
+      <button onclick="playgame();" id="play"><img src="assets/play.svg" height="10"> запуск</button>
+      <button onclick="downloadgame();" id="save"><img src="assets/download.svg" height="10"> скачать</button>
+      <!--<button onclick="window.open('help.html')" id="help"><img src="assets/help.svg" height="10"> помощь</button>-->
+      <button onclick="$('opengame').style.display='block'; $('editor').style.display='none';" id="open"><img src="assets/open.svg" height="10"> открыть</button>
+    </div>
+    <div><b class="header">Настройки:</b></div>
+    <div id="options">
+      <div><label for="count" class="label">Количество клеток:</label>
+      <input type="number" id="count" value="1000" onchange="checknum(this, checksum(window.states.length), 2500, true); options.count = this.value;"></div>
+      <div><label for="count" class="label">Максимальная скорость:</label>
+      <input type="number" id="count" value="7" onchange="checknum(this, 1, 10, true); options.speed = this.value;"></div>
+      <div><label for="count" class="label">Карантин:</label>
+      <input type="number" id="count" value="0" onchange="checknum(this, 0, 420, true); options.quar = this.value;"></div>
+    </div>
+    <div><b class="header">Состояния клеток:</b></div>
+    <button id="newstate" onclick="newState('без имени', '#000000')">+ новое</button>
+    <div id="states"></div>
+  </div>
+  <div id="opengame" style="display: none;">
+    <div><button onclick="$('opengame').style.display='none'; $('editor').style.display='block';" id="back">назад</button></div>
+    <div><input type="file" id="file" onchange="opengame(this.files[0]);"></div>
+    <div><textarea id="console" readonly></textarea></div>
+  </div>
+</body>
+</html>
+<script src="editor.js"></script>
