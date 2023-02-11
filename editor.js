@@ -255,6 +255,7 @@ function opengame(file) {
               $('states').innerHTML = "";
               states = [];
               openedadd = [];
+              lastnum = 0;
               for (let i = 0; i < obj.states.length; i++) {
                 let st = obj.states[i];
                 if (st.name && st.color) {
@@ -291,8 +292,8 @@ function opengame(file) {
                 speed: obj.options.speed,
                 quar: obj.options.quar ?? 0,
                 stop: false,
-                music: obj.options.music,
-                turbo: obj.options.turbo
+                music: obj.options.music ?? false,
+                turbo: obj.options.turbo ?? false
               };
               $('count').value = options.count;
               $('speed').value = options.speed;
