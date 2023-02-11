@@ -1,4 +1,5 @@
-var json = localStorage.getItem('epidemic_simulator_json') ?? `{
+var url = new URL(location.href);
+var json = (url.searchParams.get('open') ? localStorage.getItem('epidemic_simulator_json'):null)?? `{
   "name": "epidemic_simulator",
   "resolution": 1080,
   "states": [
@@ -21,7 +22,8 @@ var json = localStorage.getItem('epidemic_simulator_json') ?? `{
     "size": 420,
     "speed": 7,
     "quar": 0, 
-    "stop": false
+    "stop": false,
+    "music": true
   },
   "style": {
     "size": 5, 
@@ -33,7 +35,8 @@ var json = localStorage.getItem('epidemic_simulator_json') ?? `{
 }`;
 const fps = 30;
 const fpsTime = 1000/fps;
-var w, h, cwc, chc, x, y;
+var pause = false;
+var cw, ch, cwc, chc, cx, cy;
 var canvas = document.getElementById('canvas');
 var ctx = canvas.getContext('2d');
 var graph_ = document.getElementById('graph');
@@ -87,8 +90,10 @@ function resize() {
   canvas.style.left = `${Math.floor(X)}px`;
   graph_.width = Math.floor(250*cwc);
   graph_.height = Math.floor(120*chc);
-  x = Math.floor(X);
-  y = Math.floor(Y);
+  cx = Math.floor(X);
+  cy = Math.floor(Y);
+  cw = W;
+  ch = H;
 }
 
 resize();
@@ -259,23 +264,27 @@ class Cell {
 }
 
 function random(max) {
-  return (Math.random()*max)%max;
+  return Math.random()*max;
 }
 
-for (let i = 0; i < options.count; i++) {
-  arr.push(new Cell(i));
-}
-
-states[0].count = options.count;
-
-for (let i = 1, j = 0; i < states.length; i++) {
-  let ill = states[i];
-  ill.count = 0;
-  for (let k = 0; k < ill.initial; k++, j++) {
-    arr[j].toState(i);
+function start() {
+  arr = [];
+  counts = [];
+  frame_ = 0;
+  for (let i = 0; i < options.count; i++) {
+    arr.push(new Cell(i));
+  }
+  states[0].count = options.count;
+  for (let i = 1, j = 0; i < states.length; i++) {
+    let ill = states[i];
+    ill.count = 0;
+    for (let k = 0; k < ill.initial; k++, j++) {
+      arr[j].toState(i);
+    }
   }
 }
 
+start();
 sort();
 
 function clear() {
@@ -285,21 +294,23 @@ function clear() {
 
 function frame() {
   if (counter > 0 || !options.stop) {
-    let counts_ = [];
-    for (let i = 0; i < states.length; i++) {
-      counts_[i] = states[i].count;
-    }
-    counts.push(counts_);
     let FPS = Math.floor(10000/(performance.now()-lastTime))/10;
     let start = performance.now();
     lastTime = performance.now();
+    if (!pause) {
+      let counts_ = [];
+      for (let i = 0; i < states.length; i++) {
+        counts_[i] = states[i].count;
+      }
+      counts.push(counts_);
+    }
     clear();
     ctx.fillStyle = "#d0d0d0";
     ctx.fillRect(0, 0, X(450), Y(450));
     ctx.fillStyle ="#ffffff";
     ctx.fillRect(X(15), Y(15), X(420), Y(420));
     for (let i = 0; i < arr.length; i++) {
-      arr[i].handler();
+      if (!pause) arr[i].handler();
       arr[i].first();
     }
     for (let i = 0; i < arr.length; i++) {
@@ -326,7 +337,30 @@ function frame() {
     ctx.fillRect(0, Y(435), X(450), Y(15));
     ctx.fillRect(0, 0, X(15), Y(450));
     ctx.fillRect(X(435), 0, X(15), Y(450));
-    frame_++;
+    ctx.fillStyle = "#d0d0d0";
+    if (pause) {
+      ctx.beginPath();
+      ctx.moveTo(X(850), Y(400));
+      ctx.lineTo(X(870), Y(415));
+      ctx.lineTo(X(850), Y(430));
+      ctx.closePath();
+      ctx.fill();
+      ctx.fillRect(X(800), Y(400), X(30), Y(30));
+      ctx.fillStyle = "#ffffff";
+      ctx.fillRect(X(807), Y(407), X(16), Y(16));
+      ctx.fillRect(X(820), Y(415), X(16), Y(20));
+      ctx.fillStyle = "#d0d0d0";
+      ctx.beginPath();
+      ctx.moveTo(X(834), Y(410));
+      ctx.lineTo(X(825), Y(420));
+      ctx.lineTo(X(818), Y(410));
+      ctx.closePath();
+      ctx.fill();
+    } else {
+      ctx.fillRect(X(850), Y(400), X(10), Y(30));
+      ctx.fillRect(X(870), Y(400), X(10), Y(30));
+      frame_++;
+    }
     ctx.fillStyle = "#000000";
     ctx.font = `${X(18)}px Monospace`;
     ctx.fillText(`Расчёт: ${Math.floor(performance.now()-start)}мс`, X(490), Y(90));
@@ -337,7 +371,7 @@ function frame() {
         let link = graph_.toDataURL('image/png');
         let a = document.createElement('a');
         a.href = link;
-        a.download = `ill_simulator_graph_${new Date().toString()}.png`;
+        a.download = `epidemic_simulator_graph_${new Date().toString()}.png`;
         a.click();
       }
     });
@@ -426,9 +460,10 @@ ctx.font = `${X(36)}px Monospace`;
 ctx.fillText("Симулятор Болезни", X(230), Y(100));
 
 addEventListener('click', () => {
-  music.play();
-  //fullScreen(document.documentElement);
+  music.loop = true;
+  if (options.music) music.play();
   interval = setInterval(() => { if (performance.now() >= lastTime+fpsTime) frame(); }, 1);
+  document.addEventListener('click', click);
 }, { once: true });
 
 function fullScreen(e) {
@@ -461,6 +496,17 @@ function sort() {
       sorted[maxi] = sorted[j];
       sorted[j] = max;
     }
+  }
+}
+function click(e) {
+  let x = (e.pageX-cx)/cwc;
+  let y = (e.pageY-cy)/chc;
+  if (x > 850 && y > 400) {
+    pause = !pause;
+  }
+  if (pause && x > 800 && x < 850 && y > 400) {
+    start();
+    pause = false;
   }
 }
 function ahex(a) {
