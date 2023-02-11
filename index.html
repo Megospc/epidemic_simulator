@@ -26,6 +26,8 @@
       <input type="number" id="quar" value="0" onchange="checknum(this, 0, 420, true); window.options.quar = this.value;"></div>
       <div><input type="checkbox" id="music" onchange="window.options.music = this.checked" checked>
       <label for="music" class="label">Музыка</label></div>
+      <div><input type="checkbox" id="turbo" onchange="window.options.turbo = this.checked">
+      <label for="turbo" class="label">Турбо-режим</label></div>
     </div>
     <div><b class="header">Состояния клеток:</b></div>
     <button id="newstate" onclick="newState('без имени', '#000000')">+ новое</button>

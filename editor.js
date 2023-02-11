@@ -6,7 +6,8 @@ var options = {
   speed: 7,
   quar: 0,
   stop: false,
-  music: true
+  music: true,
+  turbo: false
 };
 var openedadd = [];
 var $ = (id) => document.getElementById(id);
@@ -290,12 +291,14 @@ function opengame(file) {
                 speed: obj.options.speed,
                 quar: obj.options.quar ?? 0,
                 stop: false,
-                music: obj.options.music
+                music: obj.options.music,
+                turbo: obj.options.turbo
               };
               $('count').value = options.count;
               $('speed').value = options.speed;
               $('quar').value = options.quar;
               $('music').value = options.music;
+              $('turbo').value = options.turbo;
               log("Загрузка завершена");
               setTimeout(() => { $('opengame').style.display='none'; $('editor').style.display='block'; }, 500);
             } else {

@@ -21,8 +21,6 @@ var json = (url.searchParams.get('open') ? localStorage.getItem('epidemic_simula
     "count": 1000,
     "size": 420,
     "speed": 7,
-    "quar": 0, 
-    "stop": false,
     "music": true
   },
   "style": {
@@ -55,6 +53,7 @@ var time;
 var counter = options.count;
 var sorted = [];
 var interval;
+var started = false;
 var music = new Audio();
 music.src = "assets/music.mp3";
 document.getElementById('viewport').content = `width=${obj.resolution},user-scalable=no`;
@@ -94,6 +93,7 @@ function resize() {
   cy = Math.floor(Y);
   cw = W;
   ch = H;
+  if (!started) startrender();
 }
 
 resize();
@@ -418,16 +418,16 @@ function updateGraph() {
   grp.fillRect(X(40), Y(5), X(1), Y(90));
   grp.fillText("0", X(40), Y(105), X(30));
   grp.fillRect(X(75), Y(5), X(1), Y(90));
-  let tm = Math.floor(time/4*10)/10;
+  let tm = Math.floor(time/4*10/20*7)/10;
   grp.fillText(`${tm%1 == 0 ? tm+".0":tm}`, X(70), Y(105), X(30));
   grp.fillRect(X(110), Y(5), X(1), Y(90));
-  tm = Math.floor(time/2*10)/10;
+  tm = Math.floor(time/2*10/20*11)/10;
   grp.fillText(`${tm%1 == 0 ? tm+".0":tm}`, X(110), Y(105), X(30));
   grp.fillRect(X(145), Y(5), X(1), Y(90));
-  tm = Math.floor(time/4*30)/10;
+  tm = Math.floor(time/4*30/20*14.5)/10;
   grp.fillText(`${tm%1 == 0 ? tm+".0":tm}`, X(145), Y(105), X(30));
   grp.fillRect(X(180), Y(5), X(1), Y(90));
-  tm = time;
+  tm = Math.floor(time/20*18*10)/10;
   grp.fillText(`${tm%1 == 0 ? tm+".0":tm}`, X(180), Y(105), X(30));
   grp.lineWidth = X(2);
   if (frame_ > 0) {
@@ -451,18 +451,22 @@ function updateGraph() {
   graph = grp.getImageData(0, 0, graph_.width, graph_.height);
 }
 
-clear();
-ctx.fillStyle = "#a00000a0";
-ctx.font = `${X(42)}px Monospace`;
-ctx.fillText("Кликните чтобы продолжить", X(120), Y(200));
-ctx.fillStyle = "#0000a0a0";
-ctx.font = `${X(36)}px Monospace`;
-ctx.fillText("Симулятор Болезни", X(230), Y(100));
-
+function startrender() {
+  clear();
+  ctx.fillStyle = "#a00000a0";
+  ctx.font = `${X(42)}px Monospace`;
+  ctx.fillText("Кликните чтобы продолжить", X(120), Y(200));
+  ctx.fillStyle = "#0000a0a0";
+  ctx.font = `${X(36)}px Monospace`;
+  ctx.fillText("Симулятор Болезни", X(230), Y(100));
+}
+startrender();
 addEventListener('click', () => {
   music.loop = true;
   if (options.music) music.play();
-  interval = setInterval(() => { if (performance.now() >= lastTime+fpsTime) frame(); }, 1);
+  if (options.turbo) interval = setInterval(() => frame(), 1);
+  else interval = setInterval(() => { if (performance.now() >= lastTime+fpsTime) frame(); }, 1);
+  started = true;
   document.addEventListener('click', click);
 }, { once: true });
 
