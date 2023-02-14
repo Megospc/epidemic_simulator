@@ -24,10 +24,25 @@
       <input type="number" id="speed" value="7" onchange="checknum(this, 1, 10, true); window.options.speed = this.value;"></div>
       <div><label for="quar" class="label">Карантин:</label>
       <input type="number" id="quar" value="0" onchange="checknum(this, 0, 420, true); window.options.quar = this.value;"></div>
-      <div><input type="checkbox" id="music" onchange="window.options.music = this.checked;" checked>
-      <label for="music" class="label">Музыка</label></div>
-      <div><input type="checkbox" id="turbo" onchange="window.options.turbo = this.checked;">
-      <label for="turbo" class="label">Турбо-режим</label></div>
+      <p class="add" onclick="addopt();">Дополнительно <img src="assets/down.svg" id="addopt_" width="12"></p>
+      <div id="addopt" style="display: none; height: 120px">
+        <div id="resolution">
+          <p class="label">Разрешение: </p>
+          <p class="label" id="resshow">1080р </p>
+          <button id="res180" onclick="options.resolution = 180; $('resshow').innerHTML='180р '" class="resolution">180р (MMS)</button>
+          <button id="res270" onclick="options.resolution = 270; $('resshow').innerHTML='270р '" class="resolution">270р (QVGA)</button>
+          <button id="res540" onclick="options.resolution = 540; $('resshow').innerHTML='540р '" class="resolution">540р (VGA)</button>
+          <button id="res1080" onclick="options.resolution = 1080; $('resshow').innerHTML='1080р '" class="resolution">1080р (HD)</button>
+          <button id="res2160" onclick="options.resolution = 2160; $('resshow').innerHTML='2160р '" class="resolution">2160 (FHD)</button>
+          <button id="res4320" onclick="options.resolution = 4320; $('resshow').innerHTML='4320р '" class="resolution">4320р (UHD)</button>
+        </div>
+        <div><input type="checkbox" id="music" onchange="window.options.music = this.checked;" checked>
+        <label for="music" class="label">Музыка</label></div>
+        <div><input type="checkbox" id="turbo" onchange="window.options.turbo = this.checked;">
+        <label for="turbo" class="label">Турбо-режим</label></div>
+        <div><input type="checkbox" id="ultra" onchange="window.options.ultra = this.checked;">
+        <label for="ultra" class="label">Ультра-режим</label></div>
+      </div>
     </div>
     <div><b class="header">Состояния клеток:</b></div>
     <button id="newstate" onclick="newState('без имени', '#000000')">+ новое</button>

@@ -7,9 +7,13 @@ var options = {
   quar: 0,
   stop: false,
   music: true,
-  turbo: false
+  turbo: false,
+  resolution: 1080,
+  onlygame: false,
+  ultra: false
 };
 var openedadd = [];
+var openedaddopt = false;
 var $ = (id) => document.getElementById(id);
 var name = "без имени";
 
@@ -29,23 +33,28 @@ function error(str) {
   alert(str);
 }
 function createJSON() {
+  let opts = Object.assign({}, options);
+  delete opts.ultra;
+  delete opts.resolution;
   let obj = {
     name: name,
-    resolution: 1080,
     states: [], 
-    options: options,
+    options: opts,
     style: {
       size: 5,
       sort: true, 
-      dots: { color: "ill", size: 2, transparent: true },
-      deadanim: true, 
-      chanim: true
+      dots: options.ultra ? false:{ color: "ill", size: 2, transparent: true },
+      deadanim: !options.ultra, 
+      chanim: !options.ultra,
+      onlygame: options.ultra,
+      resolution: options.resolution
     }
   };
   for (let i = 0; i < states.length; i++) {
     let o = Object.assign({}, states[i]);
     delete o.div;
     delete o.points;
+    delete o.num;
     obj.states.push(o);
   }
   return JSON.stringify(obj);
@@ -102,9 +111,9 @@ function newState(name, color) {
       <input type="number" id="attacktrans${num}" onchange="checknum(this, 0, 100, false); updateStates();" value="0"></div>
       <div><label for="rest${num}" class="label">Отдых(с):</label>
       <input type="number" id="rest${num}" onchange="checknum(this, 0, 120, false); updateStates();" value="0"></div>
-      <div><input type="checkbox" id="robber${num}" onchange="updateState(${num})">
+      <div><input type="checkbox" id="robber${num}" onchange="updateStates();">
       <label for="robber${num}" class="label">Грабитель</label></div>
-      <div><input type="checkbox" id="allone${num}" onchange="updateState(${num})">
+      <div><input type="checkbox" id="allone${num}" onchange="updateStates();">
       <label for="allone${num}" class="label">Всё за одного</label></div>
     </div>
     <div class="border"></div>
@@ -134,10 +143,11 @@ function newState(name, color) {
     div: div
   };
   $('states').appendChild(div);
-  $(`color${num}`).addEventListener("change", () => eval(`updateState(${num})`))
+  $(`color${num}`).addEventListener("change", updateStates)
   states.push(obj);
-  openedadd.push(true);
+  openedadd.push(false);
   lastnum++;
+  updateStates();
   return obj;
 }
 function updateState(n) {
@@ -149,7 +159,7 @@ function updateState(n) {
     hiddengraph: !$(`hiddengraph${i}`).checked,
     name: $(`name${i}`).value,
     div: states[n].div,
-    num: states[n].num,
+    num: i,
     points: 0,
     prob: Number($(`prob${i}`).value)/100,
     zone: Number($(`zone${i}`).value),
@@ -175,8 +185,8 @@ function updateState(n) {
   $(`points${i}`).innerHTML = obj.points;
   $(`points${i}`).style.color = obj.color;
   $(`num${i}`).style.color = obj.color;
-  $(`num${i}`).style.color = n;
-  states[i] = obj;
+  $(`num${i}`).innerHTML = n+1;
+  states[n] = obj;
 }
 function updateStates() {
   for (let i = 0; i < states.length; i++) {
@@ -198,6 +208,8 @@ function deletestate(i) {
   if (confirm(`Вы хотите удалить состояние '${states[i].name}'?`)) {
     states[i].div.remove();
     states.splice(i, 1);
+    openedadd.splice(i, 1);
+    updateStates();
   }
 }
 function checksum(i) {
@@ -213,7 +225,8 @@ function copystate(i) {
   }
   let cs = states[i];
   let num = states.length;
-  newState(cs.name + " копия", cs.color);
+  let ns = newState(cs.name + " копия", cs.color);
+  i = ns.num;
   $(`hiddenstat${i}`).checked = !(cs.hiddenstat ?? false);
   $(`hiddengraph${i}`).checked = !(cs.hiddengraph ?? false);
   $(`transparent${i}`).checked = cs.transparent ?? false;
@@ -229,7 +242,7 @@ function copystate(i) {
   $(`robber${i}`).checked = cs.robber ?? false;
   $(`after${i}`).value = (cs.after ?? 0)/1000;
   $(`rest${i}`).value = (cs.rest ?? 0)/1000;
-  $(`attacktrans${i}`).value = (cs.attacktrans ?? 0)/1000;
+  $(`attacktrans${i}`).value = (cs.attacktrans ?? 0)*100;
   $(`initial${i}`).value = cs.initial ?? 0;
   $(`time${i}`).value = (cs.time ?? 0)/1000;
 }
@@ -292,14 +305,18 @@ function opengame(file) {
                 speed: obj.options.speed,
                 quar: obj.options.quar ?? 0,
                 stop: false,
-                music: obj.options.music ?? false,
-                turbo: obj.options.turbo ?? false
+                music: obj.options.music ?? true,
+                turbo: obj.options.turbo ?? false,
+                ultra: !((obj.style.chanim ?? true) || (obj.style.deadanim ?? true)) && (obj.style.onlygame ?? false),
+                resolution: obj.options.resolution ?? 1080
               };
               $('count').value = options.count;
               $('speed').value = options.speed;
               $('quar').value = options.quar;
-              $('music').value = options.music;
-              $('turbo').value = options.turbo;
+              $('music').checked = options.music;
+              $('turbo').checked = options.turbo;
+              $('ultra').checked = options.ultra;
+              $('resshow').innerHTML = options.resolution + "р ";
               log("Загрузка завершена");
               setTimeout(() => { $('opengame').style.display='none'; $('editor').style.display='block'; }, 500);
             } else {
@@ -329,6 +346,17 @@ function addh(i) {
     $(`add_${i}`).src = 'assets/up.svg';
     $(`add${i}`).style.display = 'block';
     openedadd[i] = true;
+  }
+}
+function addopt() {
+  if (openedaddopt) {
+    $(`addopt_`).src = 'assets/down.svg';
+    $(`addopt`).style.display = 'none';
+    openedaddopt = false;
+  } else {
+    $(`addopt_`).src = 'assets/up.svg';
+    $(`addopt`).style.display = 'block';
+    openedaddopt = true;
   }
 }
 function testCount() {

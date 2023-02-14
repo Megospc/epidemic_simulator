@@ -34,7 +34,7 @@ var json = (url.searchParams.get('open') ? localStorage.getItem('epidemic_simula
 const fps = 30;
 const fpsTime = 1000/fps;
 var pause = false;
-var cw, ch, cwc, chc, cx, cy;
+var cw, ch, cc, cx, cy;
 var canvas = document.getElementById('canvas');
 var ctx = canvas.getContext('2d');
 var graph_ = document.getElementById('graph');
@@ -81,14 +81,16 @@ function resize() {
     X = (w-(h*needc))/2;
     Y = 0;
   }
-  canvas.width = Math.floor(W);
-  canvas.height = Math.floor(H);
-  cwc = W/900;
-  chc = H/450;
+  let res = style.resolution ?? 1080;
+  canvas.width = Math.floor(res);
+  canvas.height = Math.floor(res/2);
+  canvas.style.width = `${Math.floor(W)}px`;
+  canvas.style.height = `${Math.floor(H)}px`;
+  cc = res/900;
   canvas.style.top = `${Math.floor(Y)}px`;
   canvas.style.left = `${Math.floor(X)}px`;
-  graph_.width = Math.floor(250*cwc);
-  graph_.height = Math.floor(120*chc);
+  graph_.width = Math.floor(250*cc);
+  graph_.height = Math.floor(120*cc);
   cx = Math.floor(X);
   cy = Math.floor(Y);
   cw = W;
@@ -316,22 +318,24 @@ function frame() {
     for (let i = 0; i < arr.length; i++) {
       arr[i].render();
     }
-    ctx.font = `${X(18)}px Monospace`;
-    ctx.fillStyle = "#000000";
-    time = Math.floor(timeNow()/100)/10;
-    ctx.fillText(`Время: ${time%1 == 0 ? time+".0":time}с`, X(490), Y(30));
-    ctx.fillText(`FPS: ${FPS%1 == 0 ? FPS+".0":FPS}`, X(490), Y(60));
-    ctx.fillText("Статистика:", X(490), Y(120));
-    ctx.fillText(`${counter} | сумма`, X(490), Y(150));
-    sort();
-    ctx.font = `${X(Math.min(Math.floor(9/states.length*18), 18))}px Monospace`;
-    for (let i = 0; i < sorted.length; i++) {
-      let st = sorted[i];
-      ctx.fillStyle = st.color + (st.transparent ? "80":"ff");
-      ctx.fillText(`${st.count} | ${st.name}`, X(490), Y(180+(i*Math.min(Math.floor(9/states.length*30), 30))));
+    if (!style.onlygame) {
+      ctx.font = `${X(18)}px Monospace`;
+      ctx.fillStyle = "#000000";
+      time = Math.floor(timeNow()/100)/10;
+      ctx.fillText(`Время: ${time%1 == 0 ? time+".0":time}с`, X(490), Y(30));
+      ctx.fillText(`FPS: ${FPS%1 == 0 ? FPS+".0":FPS}`, X(490), Y(60));
+      ctx.fillText("Статистика:", X(490), Y(120));
+      ctx.fillText(`${counter} | сумма`, X(490), Y(150));
+      sort();
+      ctx.font = `${X(Math.min(Math.floor(9/states.length*18), 18))}px Monospace`;
+      for (let i = 0; i < sorted.length; i++) {
+        let st = sorted[i];
+        ctx.fillStyle = st.color + (st.transparent ? "80":"ff");
+        ctx.fillText(`${st.count} | ${st.name}`, X(490), Y(180+(i*Math.min(Math.floor(9/states.length*30), 30))));
+      }
+      if (frame_%(options.graph ?? 1) == 0) updateGraph();
+      ctx.putImageData(graph, X(650), Y(10));
     }
-    if (frame_%(options.graph ?? 1) == 0) updateGraph();
-    ctx.putImageData(graph, X(650), Y(10));
     ctx.fillStyle = "#d0d0d0";
     ctx.fillRect(0, 0, X(450), Y(15));
     ctx.fillRect(0, Y(435), X(450), Y(15));
@@ -361,9 +365,11 @@ function frame() {
       ctx.fillRect(X(870), Y(400), X(10), Y(30));
       frame_++;
     }
-    ctx.fillStyle = "#000000";
-    ctx.font = `${X(18)}px Monospace`;
-    ctx.fillText(`Расчёт: ${Math.floor(performance.now()-start)}мс`, X(490), Y(90));
+    if (!style.onlygame) {
+      ctx.fillStyle = "#000000";
+      ctx.font = `${X(18)}px Monospace`;
+      ctx.fillText(`Расчёт: ${Math.floor(performance.now()-start)}мс`, X(490), Y(90));
+    }
   } else {
     clearInterval(interval);
     addEventListener('click', (e) => {
@@ -379,11 +385,11 @@ function frame() {
 }
 
 function X(x) {
-  return Math.floor(x*cwc);
+  return Math.floor(x*cc);
 }
 
 function Y(y) {
-  return Math.floor(y*chc);
+  return Math.floor(y*cc);
 }
 
 function timeNow() {
@@ -503,8 +509,9 @@ function sort() {
   }
 }
 function click(e) {
-  let x = (e.pageX-cx)/cwc;
-  let y = (e.pageY-cy)/chc;
+  let c = cw/900;
+  let x = (e.pageX-cx)/c;
+  let y = (e.pageY-cy)/c;
   if (x > 850 && y > 400) {
     pause = !pause;
   }

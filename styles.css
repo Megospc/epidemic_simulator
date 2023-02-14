@@ -13,7 +13,7 @@
   border: 2px solid #5050f0;
   color: #0000a0;
   border-radius: 3px;
-  width: 88px;
+  width: 78px;
   height: 40px;
 }
 #open {
@@ -105,9 +105,6 @@ input[type="number"] {
   font-size: 12px;
   display: inline;
 }
-#options {
-  height: 140px;
-}
 .border {
   height: 10px;
   border-bottom: 1px solid #808080;
@@ -161,4 +158,14 @@ input[type="file"] {
 .add {
   font-family: Monospace, sans-serif;
   font-size: 15px;
+}
+.resolution {
+  display: inline;
+  background: linear-gradient(to right, #a030a0, #f050f0);
+  font-family: Monospace, sans-serif;
+  border: 2px solid #901090;
+  color: #500050;
+  border-radius: 3px;
+  height: 18px;
+  font-size: 6px;
 }
