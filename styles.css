@@ -169,3 +169,13 @@ input[type="file"] {
   height: 18px;
   font-size: 6px;
 }
+.speed {
+  display: inline;
+  background: linear-gradient(to right, #a030a0, #f050f0);
+  font-family: Monospace, sans-serif;
+  border: 2px solid #901090;
+  color: #500050;
+  border-radius: 3px;
+  height: 18px;
+  font-size: 6px;
+}

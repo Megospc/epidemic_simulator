@@ -6,7 +6,7 @@ var json = (url.searchParams.get('open') ? localStorage.getItem('epidemic_simula
     { "color": "#00a000", "name": "здоровые", "hiddengraph": true }, 
     { "color": "#a05000", "prob": 0.05, "time": 30000, "initial": 10, "zone": 8, "name": "коклюш" },
     { "color": "#a0a000", "prob": 0.1, "time": 20000, "initial": 3, "zone": 6, "name": "скарлатина" },
-    { "color": "#a00000", "prob": 0.5, "time": 1000, "initial": 1, "zone": 8, "name": "COVID-19" },
+    { "color": "#a00000", "prob": 0.5, "time": 1000, "initial": 1, "zone": 8, "name": "COVID-19", "position": [ { "x": 200, "y": 200 } ] },
     { "color": "#0000a0", "prob": 0.03, "time": 10000, "initial": 20, "zone": 10, "name": "грипп" },
     { "color": "#000000", "prob": 0.0001, "time": 2000, "initial": 5, "zone": 420, "name": "чума" },
     { "color": "#a000a0", "prob": 0.05, "time": 15000, "initial": 5, "zone": 8, "speed": 3, "name": "бешенство" },
@@ -32,7 +32,6 @@ var json = (url.searchParams.get('open') ? localStorage.getItem('epidemic_simula
   }
 }`;
 const fps = 30;
-const fpsTime = 1000/fps;
 var pause = false;
 var cw, ch, cc, cx, cy;
 var canvas = document.getElementById('canvas');
@@ -49,14 +48,15 @@ var scale = 420/options.size;
 var frame_ = 0;
 var graph;
 var counts = [];
+var mosq = [];
 var time;
 var counter = options.count;
 var sorted = [];
 var interval;
 var started = false;
+const fpsTime = 1000/fps/(options.showspeed ?? 1);
 var music = new Audio();
 music.src = "assets/music.mp3";
-document.getElementById('viewport').content = `width=${obj.resolution},user-scalable=no`;
 function resize() {
   w = window.innerWidth;
   h = window.innerHeight;
@@ -113,6 +113,7 @@ class Cell {
     this.st = states[0];
     this.infectable = false;
     this.frame = false;
+    this.teleportated = false;
     this.infect = this.st.infect ?? this.state;
     this.infectable = this.st.zone > 0 && this.st.prob > 0;
     this.parasitetime = false;
@@ -123,8 +124,9 @@ class Cell {
       this.home = this.shome;
     }
   }
-  toState(state) {
+  toState(state, init) {
     if (this.alive) {
+      let laststate = this.st;
       this.st.count--;
       if (this.st.allone) {
         this.st.allone = false;
@@ -139,6 +141,13 @@ class Cell {
       this.st = states[state];
       this.infect = this.st.infect ? this.st.infect-1:this.state;
       this.st.count++;
+      if (this.st.teleporto && !init) {
+        this.teleportated = { st: laststate, x: this.x, y: this.y }
+        this.x = Math.max(Math.min(this.x+random(this.st.teleporto*2+1)-this.st.teleporto, options.size), 0);
+        this.y = Math.max(Math.min(this.y+random(this.st.teleporto*2+1)-this.st.teleporto, options.size), 0);
+      } else {
+        this.teleportated = false;
+      }
       if (this.st.prob && this.st.zone) {
         if (this.st.rest) {
           this.restend = timeNow()+this.st.rest;
@@ -172,6 +181,11 @@ class Cell {
         counter--;
       }
     }
+    if (this.st.mosquito) {
+      for (let i = 0; i < this.st.mosquito; i++) {
+        mosq.push(new Mosquito(mosq.length, this.x, this.y, this.state));
+      }
+    }
   }
   handler() {
     if (this.alive && this.st.time && this.state && this.time+this.st.time <= timeNow()) this.timeend();
@@ -192,7 +206,11 @@ class Cell {
           if (this.x - this.st.zone  <= p.x && this.x + this.st.zone >= p.x && this.y - this.st.zone <= p.y && this.y + this.st.zone >= p.y) {
             inzone++;
             if (Math.random() < this.st.prob && (p.st.protect ?? 0) < Math.random()) {
-              p.toState(this.infect);
+              if (Math.random() < this.st.killer) {
+                p.dead();
+              } else {
+                p.toState(this.infect);
+              }
             } else {
               if (Math.random() < this.st.attacktrans && p.state != this.st.transform) {
                 p.toState(this.transform ?? 0);
@@ -219,17 +237,35 @@ class Cell {
     }
   }
   render() {
-    let trans = this.st.transparent ? 128:255;
     if (this.alive) {
-      ctx.fillStyle = this.st.color + ahex(trans);
-      ctx.fillRect(X((this.x-(style.size/2))*scale+15), Y((this.y-(style.size/2))*scale+15), X(style.size*scale), Y(style.size*scale));
-      if (frame_ < this.frame+5 && style.chanim && this.frame !== false) {
-        let fram = frame_-this.frame;
-        let cellTrans = this.st.transparent ? 128:255;
-        let trans = ahex(cellTrans*(5-fram)/10);
-        let size = 2*style.size;
-        ctx.fillStyle = this.st.color + trans;
-        ctx.fillRect(X((this.x-(size/2))*scale+15), Y((this.y-(size/2))*scale+15), X(size), Y(size));
+      if (this.teleportated) {
+        if (frame_ < this.frame+5 && style.anim && this.frame !== false) {
+          let fram = frame_-this.frame;
+          let cellTrans = this.st.transparent ? 128:255;
+          let trans = cellTrans*fram/5;
+          ctx.fillStyle = this.st.color + ahex(trans);
+          ctx.fillRect(X((this.x-(style.size/2)*scale)+15), Y((this.y-(style.size/2)*scale)+15), X(style.size*scale), Y(style.size*scale));
+          cellTrans = this.teleportated.st.transparent ? 128:255;
+          trans = cellTrans*fram/5;
+          ctx.fillStyle = this.teleportated.st.color+ ahex(255-trans);
+          ctx.fillRect(X((this.teleportated.x-(style.size/2)*scale)+15), Y((this.teleportated.y-(style.size/2)*scale)+15), X(style.size*scale), Y(style.size*scale));
+        } else {
+          let trans = this.st.transparent ? 128:255;
+          ctx.fillStyle = this.st.color + ahex(trans);
+          ctx.fillRect(X((this.x-(style.size/2))*scale+15), Y((this.y-(style.size/2))*scale+15), X(style.size*scale), Y(style.size*scale));
+        }
+      } else {
+        let trans = this.st.transparent ? 128:255;
+        ctx.fillStyle = this.st.color + ahex(trans);
+        ctx.fillRect(X((this.x-(style.size/2))*scale+15), Y((this.y-(style.size/2))*scale+15), X(style.size*scale), Y(style.size*scale));
+        if (frame_ < this.frame+5 && style.chanim && this.frame !== false) {
+          let fram = frame_-this.frame;
+          let cellTrans = this.st.transparent ? 128:255;
+          let trans = ahex(cellTrans*(5-fram)/10);
+          let size = 2*style.size;
+          ctx.fillStyle = this.st.color + trans;
+          ctx.fillRect(X((this.x-(size/2))*scale+15), Y((this.y-(size/2))*scale+15), X(size*scale), Y(size*scale));
+        }
       }
     } else {
       if (frame_ < this.frame+15 && style.deadanim) {
@@ -238,7 +274,7 @@ class Cell {
         let cellTrans = this.st.transparent ? 128:255;
         let trans = ahex(cellTrans*(15-fram)/15);
         ctx.fillStyle = this.st.color + trans;
-        ctx.fillRect(X((this.x-(size/2))*scale+15), Y((this.y-(size/2))*scale+15), X(size), Y(size));
+        ctx.fillRect(X((this.x-(size/2))*scale+15), Y((this.y-(size/2))*scale+15), X(size*scale), Y(size*scale));
       }
     }
   }
@@ -248,7 +284,7 @@ class Cell {
         let cellTrans = this.st.transparent ? 128:255;
         ctx.fillStyle = this.st.color + ahex(cellTrans-100);
         let fill = function(x, y, s, x_, y_) {
-          ctx.fillRect(X(x_+(style.size*x)+15), Y(y_+(style.size*y)+15), X(s*style.size), Y(s*style.size));
+          ctx.fillRect(X((x_+(style.size*x))*scale+15), Y((y_+(style.size*y))*scale+15), X(s*style.size*scale), Y(s*style.size*scale));
         };
         fill(-0.75, -0.75, 0.6, this.x, this.y);
         fill(0.75, -0.75, 1, this.x, this.y);
@@ -258,13 +294,59 @@ class Cell {
         if (style.dots) {
           let cellTrans = this.st.transparent ? 128:255;
           ctx.fillStyle = (style.dots.color == "ill" ? this.st.color:style.dots.color) + (style.dots.transparent ? ahex(cellTrans-80):"");
-          ctx.fillRect(X(this.x*scale+15-(style.dots.size/2)), Y(this.y*scale+15-(style.dots.size/2)), X(style.dots.size), Y(style.dots.size));
+          ctx.fillRect(X(this.x*scale+15-(style.dots.size/2)), Y(this.y*scale+15-(style.dots.size/2)), X(style.dots.size*scale), Y(style.dots.size*scale));
         }
       }
     }
   }
 }
-
+class  Mosquito {
+  constructor(id, x, y, state) {
+    this.x = x;
+    this.y = y;
+    this.speed = { x: random(options.mosquitospeed)-(options.mosquitospeed/2), y: random(options.mosquitospeed)-(options.mosquitospeed/2) };
+    this.state = state;
+    this.id = id;
+    this.alive = true;
+    this.st = states[this.state];
+    this.home = { minx: style.size/2, miny: style.size/2, maxx: options.size-(style.size/2), maxy: options.size-(style.size/2) };
+    this.time = timeNow();
+  }
+  render() {
+    if (this.alive) {
+      let x_ = style.anim ? Math.cos(radToDeg(frame_*30))*style.mosquitosize*1.5:0;
+      let y_ = style.anim ? Math.sin(radToDeg(frame_*30))*style.mosquitosize*1.5:0;
+      let trans = this.st.transparent ? 128:255;
+      ctx.fillStyle = this.st.color + ahex(trans);
+      ctx.fillRect(X(testCordMinMax(this.x-(style.mosquitosize/2)+x_, style.mosquitosize)*scale+15), Y(testCordMinMax(this.y-(style.mosquitosize/2)+y_, style.mosquitosize)*scale+15), X(style.mosquitosize*scale), Y(style.mosquitosize*scale));
+      ctx.fillStyle = this.st.color + ahex(trans/2);
+      ctx.fillRect(X(testCordMinMax(this.x-(style.mosquitosize)+x_, style.mosquitosize*2)*scale+15), Y(testCordMinMax(this.y-(style.mosquitosize)+y_, style.mosquitosize*2)*scale+15), X(style.mosquitosize*2*scale), Y(style.mosquitosize*2*scale)); 
+    }
+  }
+  handler() {
+    if (this.alive) {
+      for (let i = 0; i < arr.length; i++) {
+        let p = arr[i];
+        if (p.state != this.state && p.alive) {
+          if (this.x - options.mosquitozone <= p.x && this.x + options.mosquitozone >= p.x && this.y - options.mosquitozone <= p.y && this.y + options.mosquitozone >= p.y) {
+            if (Math.random() < options.mosquitozone && (p.st.protect ?? 0) < Math.random()) {
+              p.toState(this.state);
+            }
+          }
+        }
+      }
+      if (options.mosquitotime && this.time+options.mosquitotime < timeNow()) {
+        this.alive = false;
+      }
+      this.x += this.speed.x;
+      this.y += this.speed.y;
+      if (this.x < this.home.minx) this.speed.x *=-1, this.x = this.home.minx;
+      if (this.x > this.home.maxx) this.speed.x *=-1, this.x = this.home.maxx;
+      if (this.y < this.home.miny) this.speed.y *=-1, this.y = this.home.miny;
+      if (this.y > this.home.maxy) this.speed.y *=-1, this.y = this.home.maxy;
+    }
+  }
+}
 function random(max) {
   return Math.random()*max;
 }
@@ -272,7 +354,9 @@ function random(max) {
 function start() {
   arr = [];
   counts = [];
+  mosq = [];
   frame_ = 0;
+  counter = options.count;
   for (let i = 0; i < options.count; i++) {
     arr.push(new Cell(i));
   }
@@ -281,7 +365,9 @@ function start() {
     let ill = states[i];
     ill.count = 0;
     for (let k = 0; k < ill.initial; k++, j++) {
-      arr[j].toState(i);
+      let p = arr[j];
+      if (ill.position && ill.position.length > k) p.x = ill.position[k].x, p.y = ill.position[k].y;
+      p.toState(i, true);
     }
   }
 }
@@ -318,12 +404,16 @@ function frame() {
     for (let i = 0; i < arr.length; i++) {
       arr[i].render();
     }
+    for (let i = 0; i < mosq.length; i++) {
+      if (!pause) mosq[i].handler();
+      mosq[i].render();
+    }
     if (!style.onlygame) {
       ctx.font = `${X(18)}px Monospace`;
       ctx.fillStyle = "#000000";
       time = Math.floor(timeNow()/100)/10;
       ctx.fillText(`Время: ${time%1 == 0 ? time+".0":time}с`, X(490), Y(30));
-      ctx.fillText(`FPS: ${FPS%1 == 0 ? FPS+".0":FPS}`, X(490), Y(60));
+      ctx.fillText(`FPS: ${FPS%1 == 0 ? FPS+".0":FPS + (options.showspeed == 1000 ? " (макс)":` (x${options.showspeed})`)}`, X(490), Y(60));
       ctx.fillText("Статистика:", X(490), Y(120));
       ctx.fillText(`${counter} | сумма`, X(490), Y(150));
       sort();
@@ -360,6 +450,31 @@ function frame() {
       ctx.lineTo(X(818), Y(410));
       ctx.closePath();
       ctx.fill();
+      ctx.beginPath();
+      ctx.moveTo(X(760), Y(400));
+      ctx.lineTo(X(770), Y(400));
+      ctx.lineTo(X(760), Y(410));
+      ctx.closePath();
+      ctx.fill();
+      ctx.beginPath();
+      ctx.moveTo(X(790), Y(400));
+      ctx.lineTo(X(780), Y(400));
+      ctx.lineTo(X(790), Y(410));
+      ctx.closePath();
+      ctx.fill();
+      ctx.beginPath();
+      ctx.moveTo(X(760), Y(430));
+      ctx.lineTo(X(770), Y(430));
+      ctx.lineTo(X(760), Y(420));
+      ctx.closePath();
+      ctx.fill();
+      ctx.beginPath();
+      ctx.moveTo(X(790), Y(430));
+      ctx.lineTo(X(780), Y(430));
+      ctx.lineTo(X(790), Y(420));
+      ctx.closePath();
+      ctx.fill();
+      ctx.fillRect(X(770), Y(410), X(10), Y(10))
     } else {
       ctx.fillRect(X(850), Y(400), X(10), Y(30));
       ctx.fillRect(X(870), Y(400), X(10), Y(30));
@@ -372,15 +487,6 @@ function frame() {
     }
   } else {
     clearInterval(interval);
-    addEventListener('click', (e) => {
-      if (e.pageX > 650 && e.pageX < 850 && e.pageY > 10 && e.pageY < 130) {
-        let link = graph_.toDataURL('image/png');
-        let a = document.createElement('a');
-        a.href = link;
-        a.download = `epidemic_simulator_graph_${new Date().toString()}.png`;
-        a.click();
-      }
-    });
   }
 }
 
@@ -470,8 +576,7 @@ startrender();
 addEventListener('click', () => {
   music.loop = true;
   if (options.music) music.play();
-  if (options.turbo) interval = setInterval(() => frame(), 1);
-  else interval = setInterval(() => { if (performance.now() >= lastTime+fpsTime) frame(); }, 1);
+  interval = setInterval(() => { if (performance.now() >= lastTime+fpsTime) frame(); }, 1);
   started = true;
   document.addEventListener('click', click);
 }, { once: true });
@@ -519,8 +624,28 @@ function click(e) {
     start();
     pause = false;
   }
+  if (pause && x > 760 && x < 790 && y > 400) {
+    fullScreen(document.documentElement);
+  }
+  if (options.healzone && y >= 15 && y <= 435 && x >= 15 && x <= 435) {
+    let x_ = (x-15)/420*options.size;
+    let y_ = (y-15)/420*options.size;
+    let zone = options.healzone;
+    for (let i = 0; i < arr.length; i++) {
+      let p = arr[i];
+      if (p.y >= y_-(zone) && p.y <= y_+zone*1 && p.x >= x_-(zone) && p.x <= x_+zone*1) {
+        p.toState(0);
+      }
+    }
+  }
 }
 function ahex(a) {
   a = Math.floor(a);
   return (a < 16 ? "0":"") + a.toString(16);
+}
+function radToDeg(deg) {
+  return deg/180*Math.PI;
+}
+function testCordMinMax(c, size) {
+  return Math.min(Math.max(c, size/2), options.size-(size/2));
 }

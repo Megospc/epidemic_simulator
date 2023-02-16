@@ -1,3 +1,5 @@
+const devices = new RegExp('Android|webOS|iPhone|iPad|iPod|BlackBerry|BB|PlayBook|IEMobile|Windows Phone|Kindle|Silk|Opera Mini', "i");
+const mobile = devices.test(navigator.userAgent);
 var lastnum = 0;
 var states = [];
 var options = {
@@ -10,13 +12,18 @@ var options = {
   turbo: false,
   resolution: 1080,
   onlygame: false,
-  ultra: false
+  ultra: false,
+  mosquitospeed: 7,
+  mosquitoprob: 0.5,
+  mosquitotime: 3000,
+  mosquitozone: 1,
+  healzone: 30,
+  showspeed: 1
 };
 var openedadd = [];
 var openedaddopt = false;
 var $ = (id) => document.getElementById(id);
 var name = "без имени";
-
 function downloadgame() {
   let blob = new Blob([createJSON()], { type: "application/json" });
   let lnk = URL.createObjectURL(blob);
@@ -27,7 +34,7 @@ function downloadgame() {
 }
 function playgame() {
   localStorage.setItem('epidemic_simulator_json', createJSON());
-  open('game.html?open=1');
+  open('game.html?open=true');
 }
 function error(str) {
   alert(str);
@@ -42,12 +49,14 @@ function createJSON() {
     options: opts,
     style: {
       size: 5,
-      sort: true, 
+      sort: true,
       dots: options.ultra ? false:{ color: "ill", size: 2, transparent: true },
-      deadanim: !options.ultra, 
+      deadanim: !options.ultra,
       chanim: !options.ultra,
+      anim: !options.ultra,
       onlygame: options.ultra,
-      resolution: options.resolution
+      resolution: options.resolution,
+      mosquitosize: 2
     }
   };
   for (let i = 0; i < states.length; i++) {
@@ -88,7 +97,7 @@ function newState(name, color) {
     <div><label for="zone${num}" class="label">Зона(пкс.):</label>
     <input type="number" id="zone${num}" onchange="checknum(this, 0, options.size, false); updateStates();" value="0"></div>
     ${num == 0 ? "":`<div><label for="zone${num}" class="label">Начальная попуяция(шт.):</label>
-    <input type="number" id="initial${num}" onchange="checknum(this, 0, options.count-checksum(${num}), true); updateStates();" value="0"></div>`}
+    <input type="number" id="initial${num}" onchange="checknum(this, 0, options.count-checksum(${num}), true); if (this.value != 1) $('pos${num}').checked = false; updateStates();" value="0"></div>`}
     <div><label for="time${num}" class="label">Длина жизни(с) 0 = бесконечно:</label>
     <input type="number" id="time${num}" onchange="checknum(this, 0, 120, false); updateStates();" value="0"></div>
     <div><label for="protect${num}" class="label">Защита(%):</label>
@@ -111,6 +120,18 @@ function newState(name, color) {
       <input type="number" id="attacktrans${num}" onchange="checknum(this, 0, 100, false); updateStates();" value="0"></div>
       <div><label for="rest${num}" class="label">Отдых(с):</label>
       <input type="number" id="rest${num}" onchange="checknum(this, 0, 120, false); updateStates();" value="0"></div>
+      <div><label for="teleporto${num}" class="label">Телепорт(пкс.):</label>
+      <input type="number" id="teleporto${num}" onchange="checknum(this, 0, 420, false); updateStates();" value="0"></div>
+      <div><label for="mosquito${num}" class="label">Москиты(шт.):</label>
+      <input type="number" id="mosquito${num}" onchange="checknum(this, 0, 3, true); updateStates();" value="0"></div>
+      <div><label for="killer${num}" class="label">Убийца(%):</label>
+      <input type="number" id="killer${num}" onchange="checknum(this, 0, 100, false); updateStates();" value="0"></div> 
+      ${num == 0 ? "":`<div><input type="checkbox" id="pos${num}" onchange="if ($	('initial${num}').value != 1) this.checked = false; updateStates();">
+      <label for="pos${num}" class="label">Точная позиция</label></div>
+      <div><label for="x${num}" class="label">Точная позиция(X):</label>
+      <input type="number" id="x${num}" onchange="checknum(this, -100, 100, false); updateStates();" value="0"></div>
+      <div><label for="y${num}" class="label">Точная позиция(Y):</label>
+      <input type="number" id="y${num}" onchange="checknum(this, -100, 100, false); updateStates();" value="0"></div>`}
       <div><input type="checkbox" id="robber${num}" onchange="updateStates();">
       <label for="robber${num}" class="label">Грабитель</label></div>
       <div><input type="checkbox" id="allone${num}" onchange="updateStates();">
@@ -140,7 +161,11 @@ function newState(name, color) {
     robber: false,
     allone: false,
     num: num,
-    div: div
+    div: div,
+    position: null,
+    teleporto: 0,
+    mosquito: 0,
+    killer: 0
   };
   $('states').appendChild(div);
   $(`color${num}`).addEventListener("change", updateStates)
@@ -175,13 +200,17 @@ function updateState(n) {
     after: Number($(`after${i}`).value)*1000,
     attacktrans: Number($(`attacktrans${i}`).value)/100,
     protect: Number($(`protect${i}`).value)/100,
-    robber: $(`robber${i}`).checked
+    robber: $(`robber${i}`).checked,
+    position: n == 0 ? null:($(`pos${i}`).checked ? [ { x: (Number($(`x${i}`).value)+100)*2.075+2.5, y: (Number($(`y${i}`).value) +100)*2.075+2.5 } ]:null),
+    teleporto: Number($(`teleporto${i}`).value),
+    mosquito: Number($(`mosquito${i}`).value),
+    killer: Number($(`killer${i}`).value)/100
   };
   obj.points += ((obj.zone**2*obj.prob)+(obj.attacktrans/4)+obj.protect)*((obj.time ? obj.time/1000:(obj.parasite ? 1:240))+(obj.after/500)-(obj.rest/500))/(obj.parasite ? 120/obj.parasite:1)/(obj.allone ? 1000:1)/(obj.infect ? 100:1)*(obj.initial || i == 0 ? 1:0);
   obj.points += obj.protect/100;
   obj.points = Math.floor(obj.points);
   if (obj.robber && options.quar) obj.points += options.size/options.size;
-  obj.points += obj.initial;
+  obj.points += obj.initial+(obj.mosquito*options.mosquitotime*(options.mosquitozone**2)*options.mosquitoprob);
   $(`points${i}`).innerHTML = obj.points;
   $(`points${i}`).style.color = obj.color;
   $(`num${i}`).style.color = obj.color;
@@ -245,6 +274,14 @@ function copystate(i) {
   $(`attacktrans${i}`).value = (cs.attacktrans ?? 0)*100;
   $(`initial${i}`).value = cs.initial ?? 0;
   $(`time${i}`).value = (cs.time ?? 0)/1000;
+  $(`pos${i}`).checked = cs.position ? true:false;
+  if (cs.position) {
+    $(`x${i}`).value = Math.floor(((cs.position[0].x ?? 210)-2.5)/2.075)-100;
+    $(`y${i}`).value = Math.floor(((cs.position[0].y ?? 210)-2.5)/2.075)-100;
+  }
+  $(`teleporto${i}`).value = cs.teleporto ?? 0;
+  $(`mosquito${i}`).value = cs.mosquito ?? 0;
+  $(`killer${i}`).value = (cs.killer ?? 0)*100;
 }
 function opengame(file) {
   let reader = new FileReader();
@@ -288,8 +325,21 @@ function opengame(file) {
                   $(`robber${i}`).checked = st.robber ?? false;
                   $(`after${i}`).value = (st.after ?? 0)/1000;
                   $(`rest${i}`).value = (st.rest ?? 0)/1000;
-                  $(`attacktrans${i}`).value = (st.attacktrans ?? 0)/1000;
-                  if (i != 0) $(`initial${i}`).value = st.initial ?? 0;
+                  $(`attacktrans${i}`).value = (st.attacktrans ?? 0)*100;
+                  $(`teleporto${i}`).value = st.teleporto ?? 0;
+                  $(`mosquito${i}`).value = st.mosquito ?? 0;
+                  $(`killer${i}`).value = (st.killer ?? 0)*100;
+                  if (i != 0) {
+                    $(`initial${i}`).value = st.initial ?? 0;
+                    $(`pos${i}`).checked = st.position ? true:false;
+                    if (st.position) {
+                      $(`x${i}`).value = Math.floor(((st.position[0].x ?? 210)-2.5)/2.075)-100;
+                      $(`y${i}`).value = Math.floor(((st.position[0].y ?? 210)-2.5)/2.075)-100;
+                    } else {
+                      $(`x${i}`).value = 0;
+                      $(`y${i}`).value = 0;
+                    }
+                  }
                   $(`time${i}`).value = (st.time ?? 0)/1000;
                   updateState(i);
                 } else {
@@ -307,17 +357,29 @@ function opengame(file) {
                 stop: false,
                 music: obj.options.music ?? true,
                 turbo: obj.options.turbo ?? false,
-                ultra: !((obj.style.chanim ?? true) || (obj.style.deadanim ?? true)) && (obj.style.onlygame ?? false),
-                resolution: obj.options.resolution ?? 1080
+                ultra: !((obj.style.chanim ?? true) || (obj.style.deadanim ?? true) || (obj.style.anim ?? true)) && (obj.style.onlygame ?? false),
+                resolution: obj.options.resolution ?? 1080,
+                mosquitospeed: obj.options.mosquitospeed ?? 7,
+                mosquitotime: obj.options.mosquitotime ?? 3000,
+                mosquitoprob: obj.options.mosquitoprob ?? 0.5,
+                mosquitozone: obj.options.mosquitozone ?? 1,
+                healzone: obj.options.healzone ?? 30,
+                showspeed: obj.options.showspeed ?? 1
               };
               $('count').value = options.count;
               $('speed').value = options.speed;
               $('quar').value = options.quar;
+              $('mosquitospeed').value = options.mosquitospeed;
+              $('mosquitotime').value = options.mosquitotime/1000;
+              $('mosquitoprob').value = options.mosquitoprob*100;
+              $('mosquitozone').value = options.mosquitozone;
+              $('healzone').value = options.healzone;
               $('music').checked = options.music;
-              $('turbo').checked = options.turbo;
               $('ultra').checked = options.ultra;
+              $('speedshow').innerHTML = options.showspeed == 1000 ? "Макс.": `x${options.showspeed} `;
               $('resshow').innerHTML = options.resolution + "р ";
               log("Загрузка завершена");
+              updateStates();
               setTimeout(() => { $('opengame').style.display='none'; $('editor').style.display='block'; }, 500);
             } else {
               log("Ошибка: style не содержит обязательные поля")
@@ -360,7 +422,7 @@ function addopt() {
   }
 }
 function testCount() {
-  if (options.count <= 1500) $('countwarn').innerHTML = "";
+  if (options.count <= 2000) $('countwarn').innerHTML = "";
   if (options.count > 2000) $('countwarn').innerHTML = " Не запускайте на слабых устройствах!";
 }
 newState("здоровые", "#00a000");
