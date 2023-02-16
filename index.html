@@ -25,17 +25,36 @@
       <div><label for="quar" class="label">Карантин:</label>
       <input type="number" id="quar" value="0" onchange="checknum(this, 0, 420, true); window.options.quar = this.value;"></div>
       <p class="add" onclick="addopt();">Дополнительно <img src="assets/down.svg" id="addopt_" width="12"></p>
-      <div id="addopt" style="display: none; height: 120px">
+      <div id="addopt" style="display: none; height: 220px">
         <div id="resolution">
           <p class="label">Разрешение: </p>
           <p class="label" id="resshow">1080р </p>
-          <button id="res180" onclick="options.resolution = 180; $('resshow').innerHTML='180р '" class="resolution">180р (MMS)</button>
-          <button id="res270" onclick="options.resolution = 270; $('resshow').innerHTML='270р '" class="resolution">270р (QVGA)</button>
-          <button id="res540" onclick="options.resolution = 540; $('resshow').innerHTML='540р '" class="resolution">540р (VGA)</button>
+          <button id="res900" onclick="options.resolution = 900; $('resshow').innerHTML='900р '" class="resolution">900р (ORG)</button>
           <button id="res1080" onclick="options.resolution = 1080; $('resshow').innerHTML='1080р '" class="resolution">1080р (HD)</button>
-          <button id="res2160" onclick="options.resolution = 2160; $('resshow').innerHTML='2160р '" class="resolution">2160 (FHD)</button>
+          <button id="res2160" onclick="options.resolution = 2160; $('resshow').innerHTML='2160р '" class="resolution">2160р (FHD)</button>
           <button id="res4320" onclick="options.resolution = 4320; $('resshow').innerHTML='4320р '" class="resolution">4320р (UHD)</button>
         </div>
+        <div id="speed">
+          <p class="label">Скорость показа: </p>
+          <p class="label" id="speedshow">x1 </p>
+          <button id="speed_0.1" onclick="options.showspeed = 0.1; $('speedshow').innerHTML='x0.1 '" class="speed">x0.1</button>
+          <button id="speed_0.2" onclick="options.showspeed = 0.2; $('speedshow').innerHTML='x0.2 '" class="speed">x0.2</button>
+          <button id="speed_0.5" onclick="options.showspeed = 0.5; $('speedshow').innerHTML='x0.5 '" class="speed">x0.5</button>
+          <button id="speed_1" onclick="options.showspeed = 1; $('speedshow').innerHTML='x1 '" class="speed">x1</button>
+          <button id="speed_2" onclick="options.showspeed = 2; $('speedshow').innerHTML='x2 '" class="speed">x2</button>
+          <button id="speed_5" onclick="options.showspeed = 5; $('speedshow').innerHTML='x5 '" class="speed">x5</button>
+          <button id="speed_max" onclick="options.showspeed = 1000; $('speedshow').innerHTML='Макс. '" class="speed">макс</button>
+        </div>
+        <div><label for="healzone" class="label">Зона излечения кликом:</label>
+        <input type="number" id="healzone" value="30" onchange="checknum(this, 0, 420, false); window.options.healzone = this.value;"></div>
+        <div><label for="mosquitospeed" class="label">Скорость москита:</label>
+        <input type="number" id="mosquitospeed" value="7" onchange="checknum(this, 1, 10, true); window.options.mosquitospeed = this.value;"></div>
+        <div><label for="mosquitoprob" class="label">Вероятность москита:</label>
+        <input type="number" id="mosquitoprob" value="50" onchange="checknum(this, 0, 100, false); window.options.mosquitoprob = this.value/100; updateStates();"></div>
+        <div><label for="mosquitotime" class="label">Время москита:</label>
+        <input type="number" id="mosquitotime" value="3" onchange="checknum(this, 0, 120, false); window.options.mosquitotime = this.value*1000; updateStates();"></div>
+        <div><label for="mosquitozone" class="label">Зона москита:</label>
+        <input type="number" id="mosquitozone" value="1" onchange="checknum(this, 0, 420, false); window.options.mosquitozone = this.value; updateStates();"></div>        
         <div><input type="checkbox" id="music" onchange="window.options.music = this.checked;" checked>
         <label for="music" class="label">Музыка</label></div>
         <div><input type="checkbox" id="turbo" onchange="window.options.turbo = this.checked;">
