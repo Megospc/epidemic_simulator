@@ -1,4 +1,4 @@
-var url = new URL(location.href);
+Tvar url = new URL(location.href);
 var json = (url.searchParams.get('open') ? localStorage.getItem('epidemic_simulator_json'):null)?? `{
   "name": "epidemic_simulator",
   "resolution": 1080,
@@ -56,7 +56,8 @@ var interval;
 var started = false;
 const fpsTime = 1000/fps/(options.showspeed ?? 1);
 var music = new Audio();
-music.src = "assets/music.mp3";
+music.src = "https://zvukipro.com/uploads/files/2019-11/1572597916_5d8bce8c181a325.mp3";
+//music from zvukipro.com
 function resize() {
   w = window.innerWidth;
   h = window.innerHeight;
