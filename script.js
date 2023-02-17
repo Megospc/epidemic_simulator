@@ -6,7 +6,7 @@ var json = (url.searchParams.get('open') ? localStorage.getItem('epidemic_simula
     { "color": "#00a000", "name": "здоровые", "hiddengraph": true }, 
     { "color": "#a05000", "prob": 0.05, "time": 30000, "initial": 10, "zone": 8, "name": "коклюш" },
     { "color": "#a0a000", "prob": 0.1, "time": 20000, "initial": 3, "zone": 6, "name": "скарлатина" },
-    { "color": "#a00000", "prob": 0.5, "time": 1000, "initial": 1, "zone": 8, "name": "COVID-19", "position": [ { "x": 200, "y": 200 } ] },
+    { "color": "#a00000", "prob": 0.5, "time": 1000, "initial": 1, "zone": 8, "name": "COVID-19" },
     { "color": "#0000a0", "prob": 0.03, "time": 10000, "initial": 20, "zone": 10, "name": "грипп" },
     { "color": "#000000", "prob": 0.0001, "time": 2000, "initial": 5, "zone": 420, "name": "чума" },
     { "color": "#a000a0", "prob": 0.05, "time": 15000, "initial": 5, "zone": 8, "speed": 3, "name": "бешенство" },
@@ -114,6 +114,7 @@ class Cell {
     this.infectable = false;
     this.frame = false;
     this.teleportated = false;
+    this.magnet = null;
     this.infect = this.st.infect ?? this.state;
     this.infectable = this.st.zone > 0 && this.st.prob > 0;
     this.parasitetime = false;
@@ -198,12 +199,18 @@ class Cell {
       this.st.count--;
       counter--;
     } 
-    if (this.infectable) {
+    if (this.infectable || (this.magnet && this.magnetpow) || this.parasite) {
       let inzone = 0;
       for (let i = 0; i < arr.length; i++) {
         let p = arr[i];
         if (p.state != this.infect && p.state != this.state && p.alive) {
-          if (this.x - this.st.zone  <= p.x && this.x + this.st.zone >= p.x && this.y - this.st.zone <= p.y && this.y + this.st.zone >= p.y) {
+          if (!p.magnet && p.x >= this.x-this.st.magnet && p.x <= this.x+this.st.magnet && p.y >= this.y-this.st.magnet && p.y <= this.y+this.st.magnet) {
+            let c = (this.st.magnet-Math.sqrt(((this.x-p.x)**2)+((this.y-p.y)**2)))/this.st.magnet;
+            p.magnet = {};
+            p.magnet.y = p.x < this.x ? this.st.magnetpow*c:-this.st.magnetpow*c;
+            p.magnet.x = p.y < this.y ? this.st.magnetpow*c:-this.st.magnetpow*c;
+          }
+          if (this.x-this.st.zone  <= p.x && this.x+this.st.zone >= p.x && this.y-this.st.zone <= p.y && this.y+this.st.zone >= p.y) {
             inzone++;
             if (Math.random() < this.st.prob && (p.st.protect ?? 0) < Math.random()) {
               if (Math.random() < this.st.killer) {
@@ -226,10 +233,13 @@ class Cell {
       }
     }
     if (this.st.parasite && this.alive && this.parasitetime && this.parasitetime+this.st.parasite < timeNow()) this.dead();
+  }
+  move() {
     if (this.alive) {
       let home = this.st.robber ? this.shome:this.home;
-      this.x += this.speed.x*(this.st.speed ?? 1);
-      this.y += this.speed.y*(this.st.speed ?? 1);
+      let magnet = this.magnet ?? { x: 0, y: 0 };
+      this.x += (this.speed.x*(this.st.speed ?? 1))+magnet.x;
+      this.y += (this.speed.y*(this.st.speed ?? 1))//+magnet.y;
       if (this.x < home.minx) this.speed.x *=-1, this.x = home.minx;
       if (this.x > home.maxx) this.speed.x *=-1, this.x = home.maxx;
       if (this.y < home.miny) this.speed.y *=-1, this.y = home.miny;
@@ -237,44 +247,46 @@ class Cell {
     }
   }
   render() {
-    if (this.alive) {
-      if (this.teleportated) {
-        if (frame_ < this.frame+5 && style.anim && this.frame !== false) {
-          let fram = frame_-this.frame;
-          let cellTrans = this.st.transparent ? 128:255;
-          let trans = cellTrans*fram/5;
-          ctx.fillStyle = this.st.color + ahex(trans);
-          ctx.fillRect(X((this.x-(style.size/2)*scale)+15), Y((this.y-(style.size/2)*scale)+15), X(style.size*scale), Y(style.size*scale));
-          cellTrans = this.teleportated.st.transparent ? 128:255;
-          trans = cellTrans*fram/5;
-          ctx.fillStyle = this.teleportated.st.color+ ahex(255-trans);
-          ctx.fillRect(X((this.teleportated.x-(style.size/2)*scale)+15), Y((this.teleportated.y-(style.size/2)*scale)+15), X(style.size*scale), Y(style.size*scale));
+    if (!this.st.invisible) {
+      if (this.alive) {
+        if (this.teleportated) {
+          if (frame_ < this.frame+5 && style.anim && this.frame !== false) {
+            let fram = frame_-this.frame;
+            let cellTrans = this.st.transparent ? 128:255;
+            let trans = cellTrans*fram/5;
+            ctx.fillStyle = this.st.color + ahex(trans);
+            ctx.fillRect(X((this.x-(style.size/2)*scale)+15), Y((this.y-(style.size/2)*scale)+15), X(style.size*scale), Y(style.size*scale));
+            cellTrans = this.teleportated.st.transparent ? 128:255;
+            trans = cellTrans*fram/5;
+            ctx.fillStyle = this.teleportated.st.color+ ahex(255-trans);
+            ctx.fillRect(X((this.teleportated.x-(style.size/2)*scale)+15), Y((this.teleportated.y-(style.size/2)*scale)+15), X(style.size*scale), Y(style.size*scale));
+          } else {
+            let trans = this.st.transparent ? 128:255;
+            ctx.fillStyle = this.st.color + ahex(trans);
+            ctx.fillRect(X((this.x-(style.size/2))*scale+15), Y((this.y-(style.size/2))*scale+15), X(style.size*scale), Y(style.size*scale));
+          }
         } else {
           let trans = this.st.transparent ? 128:255;
           ctx.fillStyle = this.st.color + ahex(trans);
           ctx.fillRect(X((this.x-(style.size/2))*scale+15), Y((this.y-(style.size/2))*scale+15), X(style.size*scale), Y(style.size*scale));
+          if (frame_ < this.frame+5 && style.chanim && this.frame !== false) {
+            let fram = frame_-this.frame;
+            let cellTrans = this.st.transparent ? 128:255;
+            let trans = ahex(cellTrans*(5-fram)/10);
+            let size = 2*style.size;
+            ctx.fillStyle = this.st.color + trans;
+            ctx.fillRect(X((this.x-(size/2))*scale+15), Y((this.y-(size/2))*scale+15), X(size*scale), Y(size*scale));
+          }
         }
       } else {
-        let trans = this.st.transparent ? 128:255;
-        ctx.fillStyle = this.st.color + ahex(trans);
-        ctx.fillRect(X((this.x-(style.size/2))*scale+15), Y((this.y-(style.size/2))*scale+15), X(style.size*scale), Y(style.size*scale));
-        if (frame_ < this.frame+5 && style.chanim && this.frame !== false) {
+        if (frame_ < this.frame+15 && style.deadanim) {
           let fram = frame_-this.frame;
+          let size = (fram/7.5+1)*style.size;
           let cellTrans = this.st.transparent ? 128:255;
-          let trans = ahex(cellTrans*(5-fram)/10);
-          let size = 2*style.size;
+          let trans = ahex(cellTrans*(15-fram)/15);
           ctx.fillStyle = this.st.color + trans;
           ctx.fillRect(X((this.x-(size/2))*scale+15), Y((this.y-(size/2))*scale+15), X(size*scale), Y(size*scale));
         }
-      }
-    } else {
-      if (frame_ < this.frame+15 && style.deadanim) {
-        let fram = frame_-this.frame;
-        let size = (fram/7.5+1)*style.size;
-        let cellTrans = this.st.transparent ? 128:255;
-        let trans = ahex(cellTrans*(15-fram)/15);
-        ctx.fillStyle = this.st.color + trans;
-        ctx.fillRect(X((this.x-(size/2))*scale+15), Y((this.y-(size/2))*scale+15), X(size*scale), Y(size*scale));
       }
     }
   }
@@ -298,6 +310,9 @@ class Cell {
         }
       }
     }
+  }
+  end() {
+    this.magnet = null;
   }
 }
 class  Mosquito {
@@ -397,23 +412,37 @@ function frame() {
     ctx.fillRect(0, 0, X(450), Y(450));
     ctx.fillStyle ="#ffffff";
     ctx.fillRect(X(15), Y(15), X(420), Y(420));
+    if (!pause) {
+      for (let i = 0; i < arr.length; i++) {
+        arr[i].handler();
+      }
+      for (let i = 0; i < mosq.length; i++) {
+        mosq[i].handler();
+      }
+    }
     for (let i = 0; i < arr.length; i++) {
-      if (!pause) arr[i].handler();
       arr[i].first();
     }
     for (let i = 0; i < arr.length; i++) {
       arr[i].render();
     }
     for (let i = 0; i < mosq.length; i++) {
-      if (!pause) mosq[i].handler();
       mosq[i].render();
+    }
+    if (!pause) {
+      for (let i = 0; i < arr.length; i++) {
+        arr[i].move();
+      }
+      for (let i = 0; i < arr.length; i++) {
+        arr[i].end();
+      }
     }
     if (!style.onlygame) {
       ctx.font = `${X(18)}px Monospace`;
       ctx.fillStyle = "#000000";
       time = Math.floor(timeNow()/100)/10;
       ctx.fillText(`Время: ${time%1 == 0 ? time+".0":time}с`, X(490), Y(30));
-      ctx.fillText(`FPS: ${FPS%1 == 0 ? FPS+".0":FPS + (options.showspeed == 1000 ? " (макс)":` (x${options.showspeed})`)}`, X(490), Y(60));
+      ctx.fillText(`FPS: ${(FPS%1 == 0 ? FPS+".0":FPS)+ (options.showspeed == 1000 ? " ⚡":` x${options.showspeed}`)}`, X(490), Y(60));
       ctx.fillText("Статистика:", X(490), Y(120));
       ctx.fillText(`${counter} | сумма`, X(490), Y(150));
       sort();
@@ -421,7 +450,7 @@ function frame() {
       for (let i = 0; i < sorted.length; i++) {
         let st = sorted[i];
         ctx.fillStyle = st.color + (st.transparent ? "80":"ff");
-        ctx.fillText(`${st.count} | ${st.name}`, X(490), Y(180+(i*Math.min(Math.floor(9/states.length*30), 30))));
+        ctx.fillText(`${st.count} | ${st.name} ${st.invisible? "(невидим)":""}`, X(490), Y(180+(i*Math.min(Math.floor(9/states.length*30), 30))));
       }
       if (frame_%(options.graph ?? 1) == 0) updateGraph();
       ctx.putImageData(graph, X(650), Y(10));
@@ -633,7 +662,7 @@ function click(e) {
     let zone = options.healzone;
     for (let i = 0; i < arr.length; i++) {
       let p = arr[i];
-      if (p.y >= y_-(zone) && p.y <= y_+zone*1 && p.x >= x_-(zone) && p.x <= x_+zone*1) {
+      if (p.y >= y_-zone && p.y <= y_+zone*1 && p.x >= x_-zone && p.x <= x_+zone*1) {
         p.toState(0);
       }
     }
