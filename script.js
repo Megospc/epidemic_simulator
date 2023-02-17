@@ -1,4 +1,4 @@
-Tvar url = new URL(location.href);
+var url = new URL(location.href);
 var json = (url.searchParams.get('open') ? localStorage.getItem('epidemic_simulator_json'):null)?? `{
   "name": "epidemic_simulator",
   "resolution": 1080,
