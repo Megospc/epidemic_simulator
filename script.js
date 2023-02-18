@@ -49,7 +49,6 @@ var frame_ = 0;
 var graph;
 var counts = [];
 var mosq = [];
-var time;
 var counter = options.count;
 var sorted = [];
 var interval;
@@ -200,16 +199,16 @@ class Cell {
       this.st.count--;
       counter--;
     } 
-    if (this.infectable || (this.magnet && this.magnetpow) || this.parasite) {
+    if (this.infectable || (this.st.magnet && this.st.magnetpow) || this.st.parasite) {
       let inzone = 0;
       for (let i = 0; i < arr.length; i++) {
         let p = arr[i];
         if (p.state != this.infect && p.state != this.state && p.alive) {
-          if (!p.magnet && p.x >= this.x-this.st.magnet && p.x <= this.x+this.st.magnet && p.y >= this.y-this.st.magnet && p.y <= this.y+this.st.magnet) {
+          if (p.x >= this.x-this.st.magnet && p.x <= this.x+this.st.magnet && p.y >= this.y-this.st.magnet && p.y <= this.y+this.st.magnet) {
             let c = (this.st.magnet-Math.sqrt(((this.x-p.x)**2)+((this.y-p.y)**2)))/this.st.magnet;
             p.magnet = {};
-            p.magnet.y = p.x < this.x ? this.st.magnetpow*c:-this.st.magnetpow*c;
-            p.magnet.x = p.y < this.y ? this.st.magnetpow*c:-this.st.magnetpow*c;
+            p.magnet.y = p.y < this.y ? this.st.magnetpow*c:-this.st.magnetpow*c;
+            p.magnet.x = p.x < this.x ? this.st.magnetpow*c:-this.st.magnetpow*c;
           }
           if (this.x-this.st.zone  <= p.x && this.x+this.st.zone >= p.x && this.y-this.st.zone <= p.y && this.y+this.st.zone >= p.y) {
             inzone++;
@@ -270,13 +269,19 @@ class Cell {
           let trans = this.st.transparent ? 128:255;
           ctx.fillStyle = this.st.color + ahex(trans);
           ctx.fillRect(X((this.x-(style.size/2))*scale+15), Y((this.y-(style.size/2))*scale+15), X(style.size*scale), Y(style.size*scale));
-          if (frame_ < this.frame+5 && style.chanim && this.frame !== false) {
-            let fram = frame_-this.frame;
-            let cellTrans = this.st.transparent ? 128:255;
-            let trans = ahex(cellTrans*(5-fram)/10);
-            let size = 2*style.size;
-            ctx.fillStyle = this.st.color + trans;
-            ctx.fillRect(X((this.x-(size/2))*scale+15), Y((this.y-(size/2))*scale+15), X(size*scale), Y(size*scale));
+          if (this.magnet && style.anim) {
+            let trans = this.st.transparent ? 64:128;
+            ctx.fillStyle = this.st.color + ahex(trans);
+            ctx.fillRect(X((this.x-(style.size))*scale+15), Y((this.y-(style.size))*scale+15), X(style.size*2*scale), Y(style.size*2*scale));
+          } else {
+            if (frame_ < this.frame+5 && style.chanim && this.frame !== false) {
+              let fram = frame_-this.frame;
+              let cellTrans = this.st.transparent ? 128:255;
+              let trans = ahex(cellTrans*(5-fram)/10);
+              let size = 2*style.size;
+              ctx.fillStyle = this.st.color + trans;
+              ctx.fillRect(X((this.x-(size/2))*scale+15), Y((this.y-(size/2))*scale+15), X(size*scale), Y(size*scale));
+            }
           }
         }
       } else {
@@ -295,14 +300,14 @@ class Cell {
     if (!this.alive) {
       if (this.infectable) {
         let cellTrans = this.st.transparent ? 128:255;
-        ctx.fillStyle = this.st.color + ahex(cellTrans-100);
-        let fill = function(x, y, s, x_, y_) {
+        let fill = (x, y, s, x_, y_, c) => {
+          ctx.fillStyle = c;
           ctx.fillRect(X((x_+(style.size*x))*scale+15), Y((y_+(style.size*y))*scale+15), X(s*style.size*scale), Y(s*style.size*scale));
         };
-        fill(-0.75, -0.75, 0.6, this.x, this.y);
-        fill(0.75, -0.75, 1, this.x, this.y);
-        fill(-0.75, 0.75, 1, this.x, this.y);
-        fill(0.75, 0.75, 0.8, this.x, this.y);
+        fill(-0.75, -0.75, 0.6, this.x, this.y, this.st.color + ahex(cellTrans/3*(style.anim ? Math.sin(degToRad(frame_*30))+1:1)));
+        fill(0.75, -0.75, 1, this.x, this.y, this.st.color + ahex(cellTrans/3*(style.anim ? Math.sin(degToRad(frame_*30+180))+1:1)));
+        fill(-0.75, 0.75, 1, this.x, this.y, this.st.color + ahex(cellTrans/3*(style.anim ? Math.sin(degToRad(frame_*30+180))+1:1)));
+        fill(0.75, 0.75, 0.8, this.x, this.y, this.st.color + ahex(cellTrans/3*(style.anim ? Math.sin(degToRad(frame_*30))+1:1)));
       } else {
         if (style.dots) {
           let cellTrans = this.st.transparent ? 128:255;
@@ -330,8 +335,8 @@ class  Mosquito {
   }
   render() {
     if (this.alive) {
-      let x_ = style.anim ? Math.cos(radToDeg(frame_*30))*style.mosquitosize*1.5:0;
-      let y_ = style.anim ? Math.sin(radToDeg(frame_*30))*style.mosquitosize*1.5:0;
+      let x_ = style.anim ? Math.cos(degToRad(frame_*30))*style.mosquitosize*1.5:0;
+      let y_ = style.anim ? Math.sin(degToRad(frame_*30))*style.mosquitosize*1.5:0;
       let trans = this.st.transparent ? 128:255;
       ctx.fillStyle = this.st.color + ahex(trans);
       ctx.fillRect(X(testCordMinMax(this.x-(style.mosquitosize/2)+x_, style.mosquitosize)*scale+15), Y(testCordMinMax(this.y-(style.mosquitosize/2)+y_, style.mosquitosize)*scale+15), X(style.mosquitosize*scale), Y(style.mosquitosize*scale));
@@ -366,7 +371,6 @@ class  Mosquito {
 function random(max) {
   return Math.random()*max;
 }
-
 function start() {
   arr = [];
   counts = [];
@@ -380,6 +384,7 @@ function start() {
   for (let i = 1, j = 0; i < states.length; i++) {
     let ill = states[i];
     ill.count = 0;
+    ill.lastadd = 0;
     for (let k = 0; k < ill.initial; k++, j++) {
       let p = arr[j];
       if (ill.position && ill.position.length > k) p.x = ill.position[k].x, p.y = ill.position[k].y;
@@ -420,6 +425,17 @@ function frame() {
       for (let i = 0; i < mosq.length; i++) {
         mosq[i].handler();
       }
+      for (let i = 0; i < states.length; i++) {
+        let ill = states[i];
+        if (ill.addtime && ill.addcount) {
+          if (ill.addtime+ill.lastadd < timeNow()) {
+            for (let j = 0; j < ill.addcount; j++) {
+              arr[Math.floor(random(arr.length))].toState(i);
+            }
+            ill.lastadd = timeNow();
+          }
+        }
+      }
     }
     for (let i = 0; i < arr.length; i++) {
       arr[i].first();
@@ -441,20 +457,23 @@ function frame() {
     if (!style.onlygame) {
       ctx.font = `${X(18)}px Monospace`;
       ctx.fillStyle = "#000000";
-      time = Math.floor(timeNow()/100)/10;
-      ctx.fillText(`Время: ${time%1 == 0 ? time+".0":time}с`, X(490), Y(30));
-      ctx.fillText(`FPS: ${(FPS%1 == 0 ? FPS+".0":FPS)+ (options.showspeed == 1000 ? " ⚡":` x${options.showspeed}`)}`, X(490), Y(60));
-      ctx.fillText("Статистика:", X(490), Y(120));
-      ctx.fillText(`${counter} | сумма`, X(490), Y(150));
+      ctx.fillText(`Время: ${flr(timeNow()/1000)}с`, X(490), Y(style.biggraph ? 260:30));
+      ctx.fillText(`FPS: ${flr(FPS)+ (options.showspeed == 1000 ? " ⚡":` x${options.showspeed ?? 1}`)}`, X(490), Y(style.biggraph ? 290:60));
+      if (!style.biggraph) ctx.fillText("Статистика:", X(490), Y(120));
+      ctx.fillText(`${counter} | сумма`, X(490), Y(style.biggraph ? 350:150));
       sort();
       ctx.font = `${X(Math.min(Math.floor(9/states.length*18), 18))}px Monospace`;
-      for (let i = 0; i < sorted.length; i++) {
-        let st = sorted[i];
-        ctx.fillStyle = st.color + (st.transparent ? "80":"ff");
-        ctx.fillText(`${st.count} | ${st.name} ${st.invisible? "(невидим)":""}`, X(490), Y(180+(i*Math.min(Math.floor(9/states.length*30), 30))));
+      if (style.biggraph) {
+        biggraph();
+      } else {
+        for (let i = 0; i < sorted.length; i++) {
+          let st = sorted[i];
+          ctx.fillStyle = st.color + (st.transparent ? "80":"ff");
+          ctx.fillText(`${st.count} | ${st.name} ${st.invisible? "(невидим)":""}`, X(490), Y(180+(i*Math.min(Math.floor(9/states.length*30), 30))));
+        }
+        if (frame_%(options.graph ?? 1) == 0) updateGraph();
+        ctx.putImageData(graph, X(650), Y(10));
       }
-      if (frame_%(options.graph ?? 1) == 0) updateGraph();
-      ctx.putImageData(graph, X(650), Y(10));
     }
     ctx.fillStyle = "#d0d0d0";
     ctx.fillRect(0, 0, X(450), Y(15));
@@ -513,28 +532,89 @@ function frame() {
     if (!style.onlygame) {
       ctx.fillStyle = "#000000";
       ctx.font = `${X(18)}px Monospace`;
-      ctx.fillText(`Расчёт: ${Math.floor(performance.now()-start)}мс`, X(490), Y(90));
+      ctx.fillText(`Расчёт: ${Math.floor(performance.now()-start)}мс`, X(490), Y(style.biggraph ? 320:90));
     }
   } else {
     clearInterval(interval);
   }
 }
-
 function X(x) {
   return Math.floor(x*cc);
 }
-
 function Y(y) {
   return Math.floor(y*cc);
 }
-
 function timeNow() {
   return frame_/30*1000;
 }
-
+function flr(num) {
+  num = Math.floor(num*10)/10;
+  return num%1 == 0 ? num+".0":num;
+}
+function biggraph() {
+  let max = 2;
+  let start = style.graphmove ? (frame_ < 290 ? 0:frame_-290):0;
+  let timeinc = start*(1000/fps);
+  let size = style.graphmove ? (frame_ < 290 ? frame_:290):frame_;
+  for (let t = start; t < counts.length; t++) {
+    for (let i = 0; i < states.length; i++) {
+      if (!(states[i].hidden || states[i].hiddengraph)) {
+        let ct = counts[t][i];
+        if (ct > max) {
+          max = ct;
+        }
+      }
+    }
+  }
+  ctx.font = `${X(12)}px Monospace`;
+  ctx.fillStyle = "#ffffff";
+  
+  ctx.fillRect(X(465), Y(15), X(420), Y(210));
+  ctx.fillStyle = "#d0d0d0";
+  
+  ctx.fillRect(X(500), Y(40), X(360), Y(2));
+  ctx.fillText(`${max}`, X(470), Y(45), X(30));
+  ctx.fillRect(X(500), Y(120), X(360), Y(2));
+  ctx.fillText(`${Math.floor(max/2)}`, X(470), Y(125), X(30));
+  ctx.fillRect(X(500), Y(200), X(360), Y(2));
+  ctx.fillText("0", X(470), Y(205), X(30));
+  
+  ctx.fillRect(X(530), Y(15), X(2), Y(195));
+  ctx.fillText(`${flr(timeinc/1000)}`, X(525), Y(235), X(30));
+  ctx.fillRect(X(602.5), Y(15), X(2), Y(195));
+  ctx.fillText(`${flr((timeNow()-timeinc)/4000+(timeinc/1000))}`, X(600), Y(235), X(30));
+  ctx.fillRect(X(675), Y(15), X(2), Y(195));
+  ctx.fillText(`${flr((timeNow()-timeinc)/2000+(timeinc/1000))}`, X(670), Y(235), X(30));
+  ctx.fillRect(X(747.5), Y(15), X(2), Y(195));
+  ctx.fillText(`${flr((timeNow()-timeinc)/4000*3+(timeinc/1000))}`, X(742.5), Y(235), X(30));
+  ctx.fillRect(X(820), Y(15), X(2), Y(195));
+  ctx.fillText(`${flr(timeNow()/1000)}`, X(815), Y(235), X(30));
+  ctx.lineWidth = X(3);
+  if (frame_ > 0) {
+    for (let i = 0; i < states.length; i++) {
+      if (!(states[i].hidden || states[i].hiddengraph)) {
+        ctx.beginPath();
+        for (let x = 0; x < 290; x++) {
+          let ci = Math.floor(x/290*size)+start;
+          let y = 160-(counts[ci][i]/max*160);
+          if (x == 0) {
+            ctx.moveTo(X(x+530), Y(y+40));
+          } else {
+            ctx.lineTo(X(x+530), Y(y+40));
+          }
+        }
+        ctx.strokeStyle = states[i].color + (states[i].transparent ? "80":"ff");
+        ctx.stroke();
+      }
+    }
+  }
+}
 function updateGraph() {
-  let max = 0;
-  for (let t = 0; t < counts.length; t++) {
+  let max = 2;
+  let start = style.graphmove ? (frame_ < 160 ? 0:frame_-160):0;
+  let timeinc = start*(1000/fps);
+  let size = style.graphmove ? (frame_ < 160 ? frame_:160):frame_;
+  for (let t = start; t < counts.length; t++) {
     for (let i = 0; i < states.length; i++) {
       if (!(states[i].hidden || states[i].hiddengraph)) {
         let ct = counts[t][i];
@@ -558,26 +638,22 @@ function updateGraph() {
   grp.fillText("0", X(10), Y(95), X(20));
   
   grp.fillRect(X(40), Y(5), X(1), Y(90));
-  grp.fillText("0", X(40), Y(105), X(30));
+  grp.fillText(`${flr(timeinc/1000)}`, X(40), Y(105), X(30));
   grp.fillRect(X(75), Y(5), X(1), Y(90));
-  let tm = Math.floor(time/4*10/20*7)/10;
-  grp.fillText(`${tm%1 == 0 ? tm+".0":tm}`, X(70), Y(105), X(30));
+  grp.fillText(`${flr((timeNow()-timeinc)/4000/20*18+(timeinc/1000))}`, X(70), Y(105), X(30));
   grp.fillRect(X(110), Y(5), X(1), Y(90));
-  tm = Math.floor(time/2*10/20*11)/10;
-  grp.fillText(`${tm%1 == 0 ? tm+".0":tm}`, X(110), Y(105), X(30));
+  grp.fillText(`${flr((timeNow()-timeinc)/2000/20*18+(timeinc/1000))}`, X(110), Y(105), X(30));
   grp.fillRect(X(145), Y(5), X(1), Y(90));
-  tm = Math.floor(time/4*30/20*14.5)/10;
-  grp.fillText(`${tm%1 == 0 ? tm+".0":tm}`, X(145), Y(105), X(30));
+  grp.fillText(`${flr((timeNow()-timeinc)/4000*3/20*18+(timeinc/1000))}`, X(145), Y(105), X(30));
   grp.fillRect(X(180), Y(5), X(1), Y(90));
-  tm = Math.floor(time/20*18*10)/10;
-  grp.fillText(`${tm%1 == 0 ? tm+".0":tm}`, X(180), Y(105), X(30));
+  grp.fillText(`${flr((timeNow()-timeinc)/1000/20*18+(timeinc/1000))}`, X(180), Y(105), X(30));
   grp.lineWidth = X(2);
   if (frame_ > 0) {
     for (let i = 0; i < states.length; i++) {
       if (!(states[i].hidden || states[i].hiddengraph)) {
         grp.beginPath();
         for (let x = 0; x < 160; x++) {
-          let ci = Math.floor(x/160*frame_);
+          let ci = Math.floor(x/160*size)+start;
           let y = 90-(counts[ci][i]/max*80);
           if (x == 0) {
             grp.moveTo(X(x+40), Y(y));
@@ -673,7 +749,7 @@ function ahex(a) {
   a = Math.floor(a);
   return (a < 16 ? "0":"") + a.toString(16);
 }
-function radToDeg(deg) {
+function degToRad(deg) {
   return deg/180*Math.PI;
 }
 function testCordMinMax(c, size) {

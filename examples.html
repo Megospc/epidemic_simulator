@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=900px, user-scalable=yes">
+  <title>Симулятор эпидемий - примеры</title>
+  <link rel="icon" href="assets/icon.svg">
+  <style>
+    a {
+      font-family: Monospace, sans-serif;
+      font-size: 24px;
+    }
+    header {
+      font-family: Monospace, sans-serif;
+      font-size: 36px;
+      height: 72px;
+    }
+    button {
+      background-color: #00000000;
+      border: none;
+    }
+    img {
+      height: 20px;
+    }
+  </style>
+</head>
+<body>
+  <header>Примеры</header>
+  <div id="div"></div>
+</body>
+</html>
+<script>
+  var num = 0;
+  var div = document.getElementById('div');
+  create("covid-19"); //18-02-2023
+  create("столбняк"); //18-02-2023
+  create("телепорт"); //18-02-2023
+  create("грипп_vs_covid-19"); //18-02-2023
+  create("магнит"); //18-02-2023
+  create("столбняк_шевелюка"); //18-02-2023
+  create("малярия"); //18-02-2023
+  create("скарлатина"); //18-02-2023
+  create("бешенство"); //18-02-2023
+  create("призраки"); //18-02-2023
+  function create(name) {
+    div.innerHTML += `<div><a href="examples/example${num}.json" download="${name}.json"><b>${name}.json</b></a></div>`;
+    num++;
+  }
+</script>

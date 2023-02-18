@@ -1,5 +1,3 @@
-const devices = new RegExp('Android|webOS|iPhone|iPad|iPod|BlackBerry|BB|PlayBook|IEMobile|Windows Phone|Kindle|Silk|Opera Mini', "i");
-const mobile = devices.test(navigator.userAgent);
 var lastnum = 0;
 var states = [];
 var options = {
@@ -17,7 +15,9 @@ var options = {
   mosquitotime: 3000,
   mosquitozone: 1,
   healzone: 30,
-  showspeed: 1
+  showspeed: 1,
+  biggraph: false,
+  graphmove: false
 };
 var openedadd = [];
 var openedaddopt = false;
@@ -42,6 +42,8 @@ function createJSON() {
   let opts = Object.assign({}, options);
   delete opts.resolution;
   delete opts.turbo;
+  delete opts.biggraph;
+  delete opts.movegraph;
   let obj = {
     name: name,
     states: [], 
@@ -55,7 +57,9 @@ function createJSON() {
       anim: !options.turbo,
       onlygame: options.turbo,
       resolution: options.resolution,
-      mosquitosize: 2
+      mosquitosize: 2,
+      biggraph: options.biggraph,
+      graphmove: options.graphmove
     }
   };
   for (let i = 0; i < states.length; i++) {
@@ -128,7 +132,11 @@ function newState(name, color) {
       <div><label for="magnet${num}" class="label">Зона магнита(пкс.):</label>
       <input type="number" id="magnet${num}" onchange="checknum(this, 0, 420, false); updateStates();" value="0"></div>
       <div><label for="magnetpow${num}" class="label">Сила магнита:</label>
-      <input type="number" id="magnetpow${num}" onchange="checknum(this, 0, 10, false); updateStates();" value="0"></div> 
+      <input type="number" id="magnetpow${num}" onchange="checknum(this, 0, 12, false); updateStates();" value="0"></div>
+      <div><label for="addtime${num}" class="label">Добавка время(с.):</label>
+      <input type="number" id="addtime${num}" onchange="checknum(this, 0, 120, false); updateStates();" value="0"></div>
+      <div><label for="addcount${num}" class="label">Добавка количество(шт.):</label>
+      <input type="number" id="addcount${num}" onchange="checknum(this, 0, 20, true); updateStates();" value="0"></div>
       ${num == 0 ? "":`<div><input type="checkbox" id="pos${num}" onchange="if ($	('initial${num}').value != 1) this.checked = false; updateStates();">
       <label for="pos${num}" class="label">Точная позиция</label></div>
       <div><label for="x${num}" class="label">Точная позиция(X):</label>
@@ -173,7 +181,9 @@ function newState(name, color) {
     killer: 0,
     magnet: 0,
     magnetpow: 0,
-    invisible: false
+    invisible: false,
+    addcount: 0,
+    addtime: 0
   };
   $('states').appendChild(div);
   $(`color${num}`).addEventListener("change", updateStates)
@@ -215,13 +225,16 @@ function updateState(n) {
     mosquito: Number($(`mosquito${i}`).value),
     killer: Number($(`killer${i}`).value)/100,
     magnet: Number($(`magnet${i}`).value),
-    magnetpow: Number($(`magnetpow${i}`).value)
+    magnetpow: Number($(`magnetpow${i}`).value),
+    addtime: Number($(`addtime${i}`).value)*1000,
+    addcount: Number($(`addcount${i}`).value)
   };
-  obj.points += ((obj.zone**2*obj.prob)+(obj.attacktrans/4)+obj.protect)*((obj.time ? obj.time/1000:(obj.parasite ? 1:240))+(obj.after/500)-(obj.rest/500))/(obj.parasite ? 120/obj.parasite:1)/(obj.allone ? 1000:1)/(obj.infect ? 100:1)*(obj.initial || i == 0 ? 1:0);
+  obj.points += ((obj.zone**2*obj.prob)+(obj.attacktrans/4)+obj.protect)*((obj.time ? obj.time/1000:(obj.parasite ? 1:240))+(obj.after/500)-(obj.rest/500))/(obj.parasite ? 120/obj.parasite:1)/(obj.allone ? 1000:1)/(obj.infect ? 100:1)*(obj.initial || (obj.addcount && obj.addtime)|| i == 0 ? 1:0);
   obj.points += obj.protect/100;
-  obj.points = Math.floor(obj.points);
   if (obj.robber && options.quar) obj.points += options.size/options.size;
   obj.points += obj.initial+(obj.mosquito*options.mosquitotime*(options.mosquitozone**2)*options.mosquitoprob/1000);
+  if (obj.addtime) obj.points += obj.addcount/obj.addtime*48000;
+  obj.points = Math.floor(obj.points);
   $(`points${i}`).innerHTML = obj.points;
   $(`points${i}`).style.color = obj.color;
   $(`num${i}`).style.color = obj.color;
@@ -296,6 +309,8 @@ function copystate(i) {
   $(`killer${i}`).value = (cs.killer ?? 0)*100;
   $(`magnet${i}`).value = cs.magnet ?? 0;
   $(`magnetpow${i}`).value = cs.magnetpow ?? 0;
+  $(`addtime${i}`).value = (cs.addtime ?? 0)/1000;
+  $(`addcount${i}`).value = cs.addcount ?? 0;
 }
 function opengame(file) {
   let reader = new FileReader();
@@ -303,117 +318,126 @@ function opengame(file) {
   $('console').value = "";
   reader.readAsText(file);
   reader.onload = function() {
-    log("Файл обрабатывается...")
-    let json = reader.result;
-    let obj = JSON.parse(json);
-    if (typeof obj == "object") {
-      log("JSON прочитан, идёт проверка объекта...")
-      if (obj.states && obj.options && obj.style && obj.name) {
-        log("Проверка states...");
-        if (states[0] && states.length) {
-          log("Проверка options...");
-          if (obj.options.count && obj.options.speed) {
-            log("Проверка style...");
-            if (obj.style.size) {
-              log("Загрузка...");
-              $('states').innerHTML = "";
-              states = [];
-              openedadd = [];
-              lastnum = 0;
-              for (let i = 0; i < obj.states.length; i++) {
-                let st = obj.states[i];
-                if (st.name && st.color) {
-                  newState(st.name, st.color);
-                  $(`hiddenstat${i}`).checked = !(st.hiddenstat ?? false);
-                  $(`hiddengraph${i}`).checked = !(st.hiddengraph ?? false);
-                  $(`transparent${i}`).checked = st.transparent ?? false;
-                  $(`prob${i}`).value = (st.prob ?? 0)*100;
-                  $(`zone${i}`).value = st.zone ?? 0;
-                  $(`speed${i}`).value = st.speed ?? 1;
-                  $(`heal${i}`).value = (st.heal ?? 0)*100;
-                  $(`protect${i}`).value = (st.protect ?? 0)*100;
-                  $(`transform${i}`).value = (st.transform ?? 0)+1;
-                  $(`infect${i}`).value = st.infect ?? 0;
-                  $(`parasite${i}`).value = (st.parasite ?? 0)/1000;
-                  $(`allone${i}`).checked = st.allone ?? false;
-                  $(`robber${i}`).checked = st.robber ?? false;
-                  $(`invisible${i}`).checked = st.invisible ?? false;
-                  $(`after${i}`).value = (st.after ?? 0)/1000;
-                  $(`rest${i}`).value = (st.rest ?? 0)/1000;
-                  $(`attacktrans${i}`).value = (st.attacktrans ?? 0)*100;
-                  $(`teleporto${i}`).value = st.teleporto ?? 0;
-                  $(`mosquito${i}`).value = st.mosquito ?? 0;
-                  $(`killer${i}`).value = (st.killer ?? 0)*100;
-                  $(`magnet${i}`).value = st.magnet ?? 0;
-                  $(`magnetpow${i}`).value = st.magnetpow ?? 0;
-                  if (i != 0) {
-                    $(`initial${i}`).value = st.initial ?? 0;
-                    $(`pos${i}`).checked = st.position ? true:false;
-                    if (st.position) {
-                      $(`x${i}`).value = Math.floor(((st.position[0].x ?? 210)-2.5)/2.075)-100;
-                      $(`y${i}`).value = Math.floor(((st.position[0].y ?? 210)-2.5)/2.075)-100;
-                    } else {
-                      $(`x${i}`).value = 0;
-                      $(`y${i}`).value = 0;
-                    }
-                  }
-                  $(`time${i}`).value = (st.time ?? 0)/1000;
-                  updateState(i);
-                } else {
-                  log(`Ошибка при загрузке: состояние ${i} не содержит обязательные поля`);
-                  setTimeout(() => close(), 500);
-                }
-              }
-              name = obj.name;
-              $('name').value = name;
-              options = {
-                size: 420,
-                count: obj.options.count,
-                speed: obj.options.speed,
-                quar: obj.options.quar ?? 0,
-                stop: false,
-                music: obj.options.music ?? true,
-                turbo: !((obj.style.chanim ?? true) || (obj.style.deadanim ?? true) || (obj.style.anim ?? true)) && (obj.style.onlygame ?? false),
-                resolution: obj.style.resolution ?? 1080,
-                mosquitospeed: obj.options.mosquitospeed ?? 7,
-                mosquitotime: obj.options.mosquitotime ?? 3000,
-                mosquitoprob: obj.options.mosquitoprob ?? 0.5,
-                mosquitozone: obj.options.mosquitozone ?? 1,
-                healzone: obj.options.healzone ?? 30,
-                showspeed: obj.options.showspeed ?? 1
-              };
-              $('count').value = options.count;
-              $('speed').value = options.speed;
-              $('quar').value = options.quar;
-              $('mosquitospeed').value = options.mosquitospeed;
-              $('mosquitotime').value = options.mosquitotime/1000;
-              $('mosquitoprob').value = options.mosquitoprob*100;
-              $('mosquitozone').value = options.mosquitozone;
-              $('healzone').value = options.healzone;
-              $('music').checked = options.music;
-              $('turbo').checked = options.turbo;
-              $('speedshow').innerHTML = options.showspeed == 1000 ? "Макс.": `x${options.showspeed} `;
-              $('resshow').innerHTML = options.resolution + "р ";
-              log("Загрузка завершена");
-              updateStates();
-              setTimeout(() => { $('opengame').style.display='none'; $('editor').style.display='block'; }, 500);
-            } else {
-              log("Ошибка: style не содержит обязательные поля")
-            }
-          } else {
-            log("Ошибка: options не содержит обязательные поля")
-          }
-        } else {
-          log("Ошибка: неверный states")
-        }
-      } else {
-        log("Ошибка: объект не содержит обязательные поля")
-      }
-    }
+    readgame(reader.result);
   };
   reader.onerror = function() {
     log("Ошибка при чтении файла: " + reader.error);
   };
+}
+function readgame(json) {
+  let log = (txt) => $('console').value += txt+"\n";
+  log("Файл обрабатывается...")
+  let obj = JSON.parse(json);
+  if (typeof obj == "object") {
+    log("JSON прочитан, идёт проверка объекта...")
+    if (obj.states && obj.options && obj.style && obj.name) {
+      log("Проверка states...");
+      if (states[0] && states.length) {
+        log("Проверка options...");
+        if (obj.options.count && obj.options.speed) {
+          log("Проверка style...");
+          if (obj.style.size) {
+            log("Загрузка...");
+            $('states').innerHTML = "";
+            states = [];
+            openedadd = [];
+            lastnum = 0;
+            for (let i = 0; i < obj.states.length; i++) {
+              let st = obj.states[i];
+              if (st.name && st.color) {
+                newState(st.name, st.color);
+                $(`hiddenstat${i}`).checked = !(st.hiddenstat ?? false);
+                $(`hiddengraph${i}`).checked = !(st.hiddengraph ?? false);
+                $(`transparent${i}`).checked = st.transparent ?? false;
+                $(`prob${i}`).value = (st.prob ?? 0)*100;
+                $(`zone${i}`).value = st.zone ?? 0;
+                $(`speed${i}`).value = st.speed ?? 1;
+                $(`heal${i}`).value = (st.heal ?? 0)*100;
+                $(`protect${i}`).value = (st.protect ?? 0)*100;
+                $(`transform${i}`).value = (st.transform ?? 0)+1;
+                $(`infect${i}`).value = st.infect ?? 0;
+                $(`parasite${i}`).value = (st.parasite ?? 0)/1000;
+                $(`allone${i}`).checked = st.allone ?? false;
+                $(`robber${i}`).checked = st.robber ?? false;
+                $(`invisible${i}`).checked = st.invisible ?? false;
+                $(`after${i}`).value = (st.after ?? 0)/1000;
+                $(`rest${i}`).value = (st.rest ?? 0)/1000;
+                $(`attacktrans${i}`).value = (st.attacktrans ?? 0)*100;
+                $(`teleporto${i}`).value = st.teleporto ?? 0;
+                $(`mosquito${i}`).value = st.mosquito ?? 0;
+                $(`killer${i}`).value = (st.killer ?? 0)*100;
+                $(`magnet${i}`).value = st.magnet ?? 0;
+                $(`magnetpow${i}`).value = st.magnetpow ?? 0;
+                $(`addtime${i}`).value = (st.addtime ?? 0)/1000;
+                $(`addcount${i}`).value = st.addcount ?? 0;
+                if (i != 0) {
+                  $(`initial${i}`).value = st.initial ?? 0;
+                  $(`pos${i}`).checked = st.position ? true:false;
+                  if (st.position) {
+                    $(`x${i}`).value = Math.floor(((st.position[0].x ?? 210)-2.5)/2.075)-100;
+                    $(`y${i}`).value = Math.floor(((st.position[0].y ?? 210)-2.5)/2.075)-100;
+                  } else {
+                    $(`x${i}`).value = 0;
+                    $(`y${i}`).value = 0;
+                  }
+                }
+                $(`time${i}`).value = (st.time ?? 0)/1000;
+                updateState(i);
+              } else {
+                log(`Ошибка при загрузке: состояние ${i} не содержит обязательные поля`);
+                setTimeout(() => close(), 500);
+              }
+            }
+            name = obj.name;
+            $('name').value = name;
+            options = {
+              size: 420,
+              count: obj.options.count,
+              speed: obj.options.speed,
+              quar: obj.options.quar ?? 0,
+              stop: false,
+              music: obj.options.music ?? true,
+              turbo: !((obj.style.chanim ?? true) || (obj.style.deadanim ?? true) || (obj.style.anim ?? true)) && (obj.style.onlygame ?? false),
+              resolution: obj.style.resolution ?? 1080,
+              mosquitospeed: obj.options.mosquitospeed ?? 7,
+              mosquitotime: obj.options.mosquitotime ?? 3000,
+              mosquitoprob: obj.options.mosquitoprob ?? 0.5,
+              mosquitozone: obj.options.mosquitozone ?? 1,
+              healzone: obj.options.healzone ?? 30,
+              showspeed: obj.options.showspeed ?? 1,
+              biggraph: obj.style.biggraph ?? false,
+              graphmove: obj.style.graphmove ?? false
+            };
+            $('count').value = options.count;
+            $('speed').value = options.speed;
+            $('quar').value = options.quar;
+            $('mosquitospeed').value = options.mosquitospeed;
+            $('mosquitotime').value = options.mosquitotime/1000;
+            $('mosquitoprob').value = options.mosquitoprob*100;
+            $('mosquitozone').value = options.mosquitozone;
+            $('healzone').value = options.healzone;
+            $('music').checked = options.music;
+            $('biggraph').checked = options.biggraph;
+            $('turbo').checked = options.turbo;
+            $('graphmove').checked = options.graphmove;
+            $('speedshow').innerHTML = options.showspeed == 1000 ? "Макс.": `x${options.showspeed} `;
+            $('resshow').innerHTML = options.resolution + "р ";
+            log("Загрузка завершена");
+            updateStates();
+            setTimeout(() => { $('opengame').style.display='none'; $('editor').style.display='block'; }, 500);
+          } else {
+            log("Ошибка: style не содержит обязательные поля")
+          }
+        } else {
+          log("Ошибка: options не содержит обязательные поля")
+        }
+      } else {
+        log("Ошибка: неверный states")
+      }
+    } else {
+      log("Ошибка: объект не содержит обязательные поля")
+    }
+  }
 }
 function addh(i) {
   if (openedadd[i]) {

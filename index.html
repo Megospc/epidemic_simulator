@@ -13,6 +13,7 @@
       <div><input type="text" id="name" value="без имени" onchange="window.name = this.value;"></div>
       <button onclick="playgame();" id="play"><img src="assets/play.svg" height="10"> запуск</button>
       <button onclick="downloadgame();" id="save"><img src="assets/download.svg" height="10"> скачать</button>
+      <button onclick="window.open('examples.html');" id="examples"><img src="assets/examples.svg" height="10"> примеры</button>
       <button onclick="$('opengame').style.display='block'; $('editor').style.display='none';" id="open"><img src="assets/open.svg" height="10"> открыть</button>
     </div>
     <div><b class="header">Настройки:</b></div>
@@ -58,6 +59,10 @@
         <label for="music" class="label">Музыка</label></div>
         <div><input type="checkbox" id="turbo" onchange="window.options.turbo = this.checked;">
         <label for="turbo" class="label">Турбо-режим</label></div>
+        <div><input type="checkbox" id="biggraph" onchange="window.options.biggraph = this.checked;">
+        <label for="biggraph" class="label">Большой график</label></div>
+        <div><input type="checkbox" id="graphmove" onchange="window.options.graphmove = this.checked;">
+        <label for="graphmove" class="label">Сдвиг графика</label></div>
       </div>
     </div>
     <div><b class="header">Состояния клеток:</b></div>
