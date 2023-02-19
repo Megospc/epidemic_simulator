@@ -189,7 +189,7 @@ class Cell {
     }
   }
   handler() {
-    if (this.alive && this.st.time && this.state && this.time+this.st.time <= timeNow()) this.timeend();
+    if (this.alive && this.st.time && this.time+this.st.time <= timeNow()) this.timeend();
     if (this.restend && this.restend < timeNow() && this.alive) {
       this.infectable = true;
       this.restend = false;
