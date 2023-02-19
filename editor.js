@@ -51,7 +51,7 @@ function createJSON() {
     style: {
       size: 5,
       sort: true,
-      dots: options.ultra ? false:{ color: "ill", size: 2, transparent: true },
+      dots: options.turbo ? false:{ color: "ill", size: 2, transparent: true },
       deadanim: !options.turbo,
       chanim: !options.turbo,
       anim: !options.turbo,
