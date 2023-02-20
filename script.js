@@ -239,7 +239,7 @@ class Cell {
       let home = this.st.robber ? this.shome:this.home;
       let magnet = this.magnet ?? { x: 0, y: 0 };
       this.x += (this.speed.x*(this.st.speed ?? 1))+magnet.x;
-      this.y += (this.speed.y*(this.st.speed ?? 1))//+magnet.y;
+      this.y += (this.speed.y*(this.st.speed ?? 1))+magnet.y;
       if (this.x < home.minx) this.speed.x *=-1, this.x = home.minx;
       if (this.x > home.maxx) this.speed.x *=-1, this.x = home.maxx;
       if (this.y < home.miny) this.speed.y *=-1, this.y = home.miny;
