@@ -109,7 +109,7 @@ class Cell {
     this.state = 0;
     this.id = id;
     this.alive = true;
-    this.infectTime = 0;
+    this.time = 0;
     this.st = states[0];
     this.infectable = false;
     this.frame = false;
@@ -137,7 +137,7 @@ class Cell {
         this.st.allone = true;
       }
       this.state = state;
-      this.time = timeNow();
+      this.time = 0;
       this.frame = frame_;
       this.st = states[state];
       this.infect = this.st.infect ? this.st.infect-1:this.state;
@@ -676,7 +676,7 @@ function startrender() {
   ctx.fillText("Кликните чтобы продолжить", X(120), Y(200));
   ctx.fillStyle = "#0000a0a0";
   ctx.font = `${X(36)}px Monospace`;
-  ctx.fillText("Симулятор Болезни", X(230), Y(100));
+  ctx.fillText("Симулятор Эпидемий", X(230), Y(100));
 }
 startrender();
 addEventListener('click', () => {

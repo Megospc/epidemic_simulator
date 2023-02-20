@@ -21,6 +21,15 @@ var options = {
 };
 var openedadd = [];
 var openedaddopt = false;
+/*var landscape = [
+  [ 0, 0, 0, 0, 0, 0, 0 ],
+  [ 0, 0, 0, 0, 0, 0, 0 ],
+  [ 0, 0, 0, 0, 0, 0, 0 ],
+  [ 0, 0, 0, 0, 0, 0, 0 ],
+  [ 0, 0, 0, 0, 0, 0, 0 ],
+  [ 0, 0, 0, 0, 0, 0, 0 ],
+  [ 0, 0, 0, 0, 0, 0, 0 ],
+];*/
 var $ = (id) => document.getElementById(id);
 var name = "без имени";
 function downloadgame() {
@@ -396,17 +405,17 @@ function readgame(json) {
               speed: obj.options.speed,
               quar: obj.options.quar ?? 0,
               stop: false,
-              music: obj.options.music ?? true,
-              turbo: !((obj.style.chanim ?? true) || (obj.style.deadanim ?? true) || (obj.style.anim ?? true)) && (obj.style.onlygame ?? false),
-              resolution: obj.style.resolution ?? 1080,
+              music: options.music,
+              turbo: options.turbo,
+              resolution: options.resolution,
               mosquitospeed: obj.options.mosquitospeed ?? 7,
               mosquitotime: obj.options.mosquitotime ?? 3000,
               mosquitoprob: obj.options.mosquitoprob ?? 0.5,
               mosquitozone: obj.options.mosquitozone ?? 1,
               healzone: obj.options.healzone ?? 30,
-              showspeed: obj.options.showspeed ?? 1,
-              biggraph: obj.style.biggraph ?? false,
-              graphmove: obj.style.graphmove ?? false
+              showspeed: options.showspeed,
+              biggraph: options.biggraph,
+              graphmove: options.graphmove
             };
             $('count').value = options.count;
             $('speed').value = options.speed;

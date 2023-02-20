@@ -24,6 +24,14 @@
       <input type="number" id="speed" value="7" onchange="checknum(this, 1, 10, true); window.options.speed = this.value;"></div>
       <div><label for="quar" class="label">Карантин:</label>
       <input type="number" id="quar" value="0" onchange="checknum(this, 0, 420, true); window.options.quar = this.value;"></div>
+      <div><label for="mosquitospeed" class="label">Скорость москита:</label>
+      <input type="number" id="mosquitospeed" value="7" onchange="checknum(this, 1, 10, true); window.options.mosquitospeed = this.value;"></div>
+      <div><label for="mosquitoprob" class="label">Вероятность москита:</label>
+      <input type="number" id="mosquitoprob" value="50" onchange="checknum(this, 0, 100, false); window.options.mosquitoprob = this.value/100; updateStates();"></div>
+      <div><label for="mosquitotime" class="label">Время москита:</label>
+      <input type="number" id="mosquitotime" value="3" onchange="checknum(this, 0, 120, false); window.options.mosquitotime = this.value*1000; updateStates();"></div>
+      <div><label for="mosquitozone" class="label">Зона москита:</label>
+      <input type="number" id="mosquitozone" value="1" onchange="checknum(this, 0, 420, false); window.options.mosquitozone = this.value; updateStates();"></div>
       <p class="add" onclick="addopt();">Дополнительно <img src="assets/down.svg" id="addopt_" width="12"></p>
       <div id="addopt" style="display: none;">
         <div id="resolution">
@@ -46,15 +54,7 @@
           <button id="speed_max" onclick="options.showspeed = 1000; $('speedshow').innerHTML='Макс. '" class="speed">макс</button>
         </div>
         <div><label for="healzone" class="label">Зона излечения кликом:</label>
-        <input type="number" id="healzone" value="30" onchange="checknum(this, 0, 420, false); window.options.healzone = this.value;"></div>
-        <div><label for="mosquitospeed" class="label">Скорость москита:</label>
-        <input type="number" id="mosquitospeed" value="7" onchange="checknum(this, 1, 10, true); window.options.mosquitospeed = this.value;"></div>
-        <div><label for="mosquitoprob" class="label">Вероятность москита:</label>
-        <input type="number" id="mosquitoprob" value="50" onchange="checknum(this, 0, 100, false); window.options.mosquitoprob = this.value/100; updateStates();"></div>
-        <div><label for="mosquitotime" class="label">Время москита:</label>
-        <input type="number" id="mosquitotime" value="3" onchange="checknum(this, 0, 120, false); window.options.mosquitotime = this.value*1000; updateStates();"></div>
-        <div><label for="mosquitozone" class="label">Зона москита:</label>
-        <input type="number" id="mosquitozone" value="1" onchange="checknum(this, 0, 420, false); window.options.mosquitozone = this.value; updateStates();"></div>        
+        <input type="number" id="healzone" value="30" onchange="checknum(this, 0, 420, false); window.options.healzone = this.value;"></div> 
         <div><input type="checkbox" id="music" onchange="window.options.music = this.checked;" checked>
         <label for="music" class="label">Музыка</label></div>
         <div><input type="checkbox" id="turbo" onchange="window.options.turbo = this.checked;">
@@ -64,6 +64,13 @@
         <div><input type="checkbox" id="graphmove" onchange="window.options.graphmove = this.checked;">
         <label for="graphmove" class="label">Сдвиг графика</label></div>
       </div>
+      <!--<div id="landscapediv">
+        <p class="label">Ландшафт:</p>
+        <div id="lands">
+          
+        </div>
+        <canvas id="landscape" height="210" width="210"></canvas>
+      </div>-->
     </div>
     <div><b class="header">Состояния клеток:</b></div>
     <button id="newstate" onclick="newState('без имени', '#000000')">+ новое</button>
