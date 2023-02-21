@@ -109,7 +109,7 @@ class Cell {
     this.state = 0;
     this.id = id;
     this.alive = true;
-    this.time = 0;
+    this.time = timeNow();
     this.st = states[0];
     this.infectable = false;
     this.frame = false;
@@ -137,7 +137,7 @@ class Cell {
         this.st.allone = true;
       }
       this.state = state;
-      this.time = 0;
+      this.time = timeNow();
       this.frame = frame_;
       this.st = states[state];
       this.infect = this.st.infect ? this.st.infect-1:this.state;
