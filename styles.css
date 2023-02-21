@@ -1,34 +1,10 @@
-#landsel {
-  font-family: Monospace, sans-serif;
-  font-size: 8px;
-  position: relative;
-  bottom: 3px;
-}
-#landscape {
-  width: 160px;
-  height: 160px;
-}
-#landpow {
-  width: 28px;
-  height: 10px;
-  font-family: Monospace, sans-serif;
-  font-size: 10px;
-  position: relative;
-  bottom: 2px;
-}
-.landscape {
-  width: 15px;
-  height: 15px;
-  border-radius: 3px;
-  margin-right: 4px;
-}
 #play {
   background: linear-gradient(to right, #ffa0a0, #ff8080);
   font-family: Monospace, sans-serif;
   border: 2px solid #f05050;
   color: #a00000;
   border-radius: 3px;
-  width: 65px;
+  width: 70px;
   height: 40px;
 }
 #save {
@@ -37,7 +13,7 @@
   border: 2px solid #5050f0;
   color: #0000a0;
   border-radius: 3px;
-  width: 75px;
+  width: 78px;
   height: 40px;
 }
 #open {
@@ -46,16 +22,16 @@
   border: 2px solid #50f050;
   color: #00a000;
   border-radius: 3px;
-  width: 75px;
+  width: 80px;
   height: 40px;
 }
-#help {
+#examples {
   background: linear-gradient(to right, #ffd0a0, #ffd080);
   font-family: Monospace, sans-serif;
   border: 2px solid #f0c010;
   color: #a09000;
   border-radius: 3px;
-  width: 65px;
+  width: 70px;
   height: 40px;
 }
 .state {
